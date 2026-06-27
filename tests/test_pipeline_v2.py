@@ -531,3 +531,87 @@ class TestTemplateCoachinFallback:
         # Coaching should not be empty — template fallback should kick in
         assert result["coaching"] != ""
         assert len(result["coaching"]) > 20
+
+
+# ===========================================================================
+# Label Refinement Tests
+# ===========================================================================
+
+class TestLabelRefinement:
+    """Tests for _refine_above_bar_label and _refine_near_bar_label."""
+
+    def test_above_bar_default_label_outstanding(self):
+        from src.pipeline.grader_v2 import _refine_above_bar_label
+        trace = {"stage4_ejad": {"final_reasoning": "Both judges agreed. confidence=0.25"}}
+        label, score = _refine_above_bar_label(trace)
+        assert label == "outstanding_portfolio"
+        assert score == 8
+
+    def test_above_bar_very_weak_dissenter_mindblowing(self):
+        from src.pipeline.grader_v2 import _refine_above_bar_label
+        trace = {"stage4_ejad": {"final_reasoning": "All passed. confidence=0.10 is low."}}
+        label, score = _refine_above_bar_label(trace)
+        assert label == "mindblowing_portfolio"
+        assert score == 9
+
+    def test_above_bar_no_s4_trace_defaults_outstanding(self):
+        from src.pipeline.grader_v2 import _refine_above_bar_label
+        label, score = _refine_above_bar_label({})
+        assert label == "outstanding_portfolio"
+        assert score == 8
+
+    def test_near_bar_high_ioas_moderate_trajectory_mindblowing(self):
+        from src.pipeline.grader_v2 import _refine_near_bar_label
+        trace = {
+            "stage2_ioas": {"score": 0.72},
+            "stage3_cta": {"trajectory_delta": "moderate"},
+        }
+        label, score = _refine_near_bar_label(trace)
+        assert label == "mindblowing_highlight"
+        assert score == 6
+
+    def test_near_bar_medium_ioas_strong_highlight(self):
+        from src.pipeline.grader_v2 import _refine_near_bar_label
+        trace = {
+            "stage2_ioas": {"score": 0.52},
+            "stage3_cta": {"trajectory_delta": "weak"},
+        }
+        label, score = _refine_near_bar_label(trace)
+        assert label == "strong_highlight"
+
+    def test_near_bar_low_scores_strong_highlight(self):
+        from src.pipeline.grader_v2 import _refine_near_bar_label
+        trace = {
+            "stage2_ioas": {"score": 0.20},
+            "stage3_cta": {"trajectory_delta": "none"},
+        }
+        label, score = _refine_near_bar_label(trace)
+        assert label == "strong_highlight"
+        assert score == 4
+
+    def test_grader_near_bar_uses_refinement(self):
+        """near_bar result uses refined label, not hardcoded string."""
+        from src.pipeline.grader_v2 import grade_window_v2
+        import json
+        s2_high = json.dumps({
+            "intent": "x", "intent_clarity": 0.9, "outcome_precision": 0.85, "reasoning": "ok"
+        })
+        s3_moderate = json.dumps({"trajectory_delta": "moderate", "reasoning": "noticeable"})
+        coaching_mock = json.dumps({"coaching": "Try this.", "better_prompt": "Do X."})
+        window = {
+            "turns": [
+                {"role": "user", "text": "Refactor to use dependency injection for testability."},
+                {"role": "assistant", "text": "Here is the DI implementation."},
+            ]
+        }
+        with patch("src.pipeline.stage2_ioas._call_llm_with_retry", return_value=s2_high):
+            with patch("src.pipeline.stage3_cta._call_llm_with_retry", return_value=s3_moderate):
+                with patch("src.pipeline.grader_v2._call_openai_raw", return_value=coaching_mock):
+                    result = grade_window_v2(
+                        window, rubric_path="data/manual_rubric.md",
+                        provider="openai", model="gpt-4o", api_key="test",
+                    )
+        assert result["tier"] == "near_bar"
+        # With high S2 score (0.765) and moderate trajectory → mindblowing_highlight
+        assert result["label"] in ("mindblowing_highlight", "strong_highlight")
+        assert result["score"] >= 4

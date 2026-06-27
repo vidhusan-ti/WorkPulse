@@ -51,6 +51,68 @@ TIER_DEFAULTS: Dict[str, Dict[str, Any]] = {
 }
 
 # ---------------------------------------------------------------------------
+# Rubric label + score refinement based on pipeline signal strength
+# ---------------------------------------------------------------------------
+# Label mapping per rubric:
+#   above_bar tier:
+#     - "mindblowing_portfolio" (score 9-10): high judge confidence, weak dissenter
+#     - "outstanding_portfolio" (score 7-8): standard above-bar
+#   near_bar tier:
+#     - "mindblowing_highlight" (score 5-6): borderline, strong IOAS + trajectory
+#     - "strong_highlight" (score 4-5): standard near-bar
+#   below_bar tier:
+#     - "below_bar" (score 0-3)
+
+
+def _refine_above_bar_label(pipeline_trace: Dict[str, Any]) -> tuple[str, int]:
+    """Determine whether above-bar is 'mindblowing' or 'outstanding'.
+    
+    Uses Stage 4 judge confidence and dissenter weakness to distinguish.
+    Returns (label, score).
+    """
+    s4 = pipeline_trace.get("stage4_ejad", {})
+    # Extract judge confidence from standard_verdict string is brittle;
+    # use dissenter confidence directly
+    dissenter_confidence = _extract_dissenter_confidence(s4)
+    
+    # High confidence: both judges very confident + very weak dissenter → mindblowing
+    if dissenter_confidence is not None and dissenter_confidence <= 0.15:
+        return "mindblowing_portfolio", 9
+    return "outstanding_portfolio", 8
+
+
+def _refine_near_bar_label(pipeline_trace: Dict[str, Any]) -> tuple[str, int]:
+    """Determine whether near-bar is 'mindblowing_highlight' or 'strong_highlight'.
+    
+    Uses Stage 2 alignment score and Stage 3 trajectory delta.
+    Returns (label, score).
+    """
+    s2 = pipeline_trace.get("stage2_ioas", {})
+    s3 = pipeline_trace.get("stage3_cta", {})
+    
+    s2_score = float(s2.get("score", 0.0))
+    trajectory = s3.get("trajectory_delta", "none")
+    
+    # High IOAS score + moderate/strong trajectory → borderline/mindblowing highlight
+    if s2_score >= 0.60 and trajectory in ("moderate", "strong"):
+        return "mindblowing_highlight", 6
+    if s2_score >= 0.50:
+        return "strong_highlight", 5
+    return "strong_highlight", 4
+
+
+def _extract_dissenter_confidence(s4: Dict[str, Any]) -> Optional[float]:
+    """Extract dissenter confidence from Stage 4 result if available."""
+    # The dissenter confidence isn't directly stored in s4 result,
+    # but final_reasoning contains it as text. Try to parse it.
+    final_reasoning = s4.get("final_reasoning", "")
+    import re
+    match = re.search(r"confidence=(\d+\.\d+)", final_reasoning)
+    if match:
+        return float(match.group(1))
+    return None
+
+# ---------------------------------------------------------------------------
 # Coaching / better_prompt generation prompt (reuses grader LLM infra)
 # ---------------------------------------------------------------------------
 
@@ -303,12 +365,19 @@ def _build_result(
     better_prompt: str,
     pipeline_trace: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Assemble the final graded result dict."""
-    defaults = TIER_DEFAULTS.get(tier, TIER_DEFAULTS["below_bar"])
+    """Assemble the final graded result dict with refined label and score."""
+    if tier == "above_bar":
+        label, score = _refine_above_bar_label(pipeline_trace)
+    elif tier == "near_bar":
+        label, score = _refine_near_bar_label(pipeline_trace)
+    else:
+        defaults = TIER_DEFAULTS.get(tier, TIER_DEFAULTS["below_bar"])
+        label, score = defaults["label"], defaults["score"]
+
     return {
         "tier": tier,
-        "label": defaults["label"],
-        "score": defaults["score"],
+        "label": label,
+        "score": score,
         "reason": reason,
         "coaching": coaching,
         "better_prompt": better_prompt,
