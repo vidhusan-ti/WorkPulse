@@ -1,0 +1,46 @@
+Problem Statement:
+
+We believe that people bring value by providing insight, not information. Gathering information can now be done by AI tools faster and better than any human. Therefore value comes from:
+- asking the right questions at the right time
+- providing insight from context they, have to enable AI or other people to make the right decisions with a task
+- wisdom and common sense to spot when they need to cross question or ask for details to mitigate risks
+
+Then there are more basic practices like
+- articulating questions and ideas properly so as to make it easy for the other person to understand and respond
+- not offloading work when talking to other people, but doing homework, having a recommendation attitude and seeking opinions but not permission.
+- Bias for action and refusal to be blocked or stuck on other people.
+
+However, people need feedback to learn and this is no exception. Without feedback people learn slowly and the hard way. If there was a tool that provided timely feedback and potentially coaching on the above, we would all benefit.
+
+Scope:
+We will limit scope to conversation in Cursor only, so that we can build incremental value. Other surfaces can be added later on top of the core value, and cross tool observation (which comes with its own hard problems) can also be built on top of it.
+
+Target Audience:
+Anyone who uses Cursor for work or study
+
+
+INPUT
+
+What the user says to the agent
+Cursor responses
+Workspace content(SCOPING OUT for simplification)
+Timestamp
+
+
+
+Output:
+
+Insights from each prompt (Segregating as great or not)
+Reasoning behind the insights for the prompt.
+Suggest better alternatives to user’s prompt has negative insights
+
+
+Is there any information that should be hidden from third party LLM?
+	No,since cursor is used the details are already been sent to an LLM unless it is a local LLM
+
+Sourcing of input Data
+
+Engine making good decisions
+
+Giving the user feedback
+	When ,how long ,in what form,what shld it contain ?

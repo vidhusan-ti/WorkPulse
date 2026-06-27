@@ -1,0 +1,23 @@
+{
+  "transcript_glob": "C:/Users/Varadharajan/.cursor/projects/*/agent-transcripts/*/*.jsonl",
+  "check_interval_seconds": 60,
+  "inactive_after_minutes": 10,
+  "grader": "cursor",
+  "cursor_api_key_env": "CURSOR_API_KEY",
+  "cursor_api_key": "PASTE_CURSOR_API_KEY_HERE",
+  "cursor_model": "composer-2.5",
+  "cursor_max_assistant_chars": 2000,
+  "cursor_max_grades_per_cycle": 3,
+  "monitor_auto_coach": true,
+  "monitor_grade_backlog_on_start": true,
+  "monitor_notify_above_bar": true,
+  "monitor_notify_backlog": false,
+  "monitor_ask_portfolio": true,
+  "monitor_export_queue": false,
+  "monitor_persist_grades": true,
+  "data_dir": "data",
+  "approved_insights_file": "data/approved_insights.md",
+  "disapproved_insights_file": "data/disaaproved_insights.md",
+  "graded_events_file": "data/graded_events.jsonl",
+  "cursor_grade_queue_file": "data/cursor_grade_queue.json"
+}
