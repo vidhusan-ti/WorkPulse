@@ -1,0 +1,15 @@
+{
+  "transcript_glob": "",
+  "check_interval_seconds": 60,
+  "inactive_after_minutes": 10,
+  "llm_provider": "openai",
+  "llm_model": "gpt-4o",
+  "llm_api_key_env": "OPENAI_API_KEY",
+  "llm_max_assistant_chars": 2000,
+  "llm_max_grades_per_cycle": 3,
+  "data_dir": "data",
+  "portfolio_file": "data/portfolio.md",
+  "graded_events_file": "data/graded_events.jsonl",
+  "rubric_file": "data/manual_rubric.md",
+  "llm_api_key": ""
+}
