@@ -65,3 +65,10 @@
 **Decision:** PENDING — evaluating tkinter vs PyQt6
 **Criteria:** Cross-platform support, minimal dependencies, good overlay support
 **Date:** 2026-06-27
+
+---
+
+## D-008 UPDATE — LLM Provider (Finalised)
+**Decision:** Anthropic Claude (claude-sonnet-4-5 as default)
+**Reason:** Better nuanced judgment, longer context, more reliable JSON, superior attribution reasoning — all critical for the rubric's core question.
+**Date:** 2026-06-27
