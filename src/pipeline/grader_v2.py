@@ -346,14 +346,15 @@ def _get_coaching(
 ) -> tuple[str, str]:
     """Generate coaching and better_prompt for near-bar windows.
 
-    Returns (coaching, better_prompt). Falls back to empty strings on error.
+    Returns (coaching, better_prompt). Falls back to template coaching on
+    LLM error to ensure near-bar windows always have actionable feedback.
     """
     import json
     import time
 
     focal = _get_focal_user_prompt(window)
     if not focal:
-        return "", ""
+        return _template_coaching(pipeline_reason), ""
 
     conv_text = _format_conversation(window)
     user_msg = COACHING_USER_TEMPLATE.format(
@@ -369,19 +370,86 @@ def _get_coaching(
             elif provider == "anthropic":
                 raw = _call_anthropic_raw(COACHING_SYSTEM, user_msg, model, api_key)
             else:
-                return "", ""
+                return _template_coaching(pipeline_reason), ""
+
+            # Strip markdown fences if present
+            raw = raw.strip()
+            if raw.startswith("```"):
+                parts = raw.split("```")
+                raw = parts[1] if len(parts) > 1 else raw
+                if raw.startswith("json"):
+                    raw = raw[4:]
+            raw = raw.strip()
 
             data = json.loads(raw)
-            return (
-                str(data.get("coaching", "")),
-                str(data.get("better_prompt", "")),
-            )
+            coaching = str(data.get("coaching", "")).strip()
+            better_prompt = str(data.get("better_prompt", "")).strip()
+
+            # Sanity check — fallback to template if coaching is empty
+            if not coaching:
+                coaching = _template_coaching(pipeline_reason)
+
+            return coaching, better_prompt
         except Exception as exc:
             logger.warning("Coaching call attempt %d/3 failed: %s", attempt + 1, exc)
             if attempt < 2:
                 time.sleep(2 ** attempt)
 
-    return "", ""
+    return _template_coaching(pipeline_reason), ""
+
+
+def _template_coaching(pipeline_reason: str) -> str:
+    """Generate template-based coaching from the pipeline reason string.
+
+    Used as fallback when LLM coaching call fails, ensuring near-bar windows
+    always return actionable guidance rather than empty strings.
+    """
+    reason_lower = pipeline_reason.lower()
+
+    if "stage 2" in reason_lower or "ioas" in reason_lower:
+        if "intent" in reason_lower:
+            return (
+                "Stage 2 (Intent-Outcome Alignment) flagged low intent clarity. "
+                "Your prompt lacked a specific, self-originated goal. "
+                "Next time: state exactly what you want to achieve, why it matters "
+                "in your context, and what constraints apply. Avoid restating the "
+                "LLM's own suggestions back to it — bring your own direction."
+            )
+        return (
+            "Stage 2 (Intent-Outcome Alignment) flagged poor alignment between "
+            "your intent and the LLM's response. Your prompt may have been too "
+            "vague, leading the LLM to address a different problem. "
+            "Narrow the scope and state your exact goal upfront."
+        )
+
+    if "stage 3" in reason_lower or "cta" in reason_lower or "trajectory" in reason_lower:
+        return (
+            "Stage 3 (Conversation Trajectory) flagged that your prompt did not "
+            "meaningfully advance the conversation. The exchange produced only "
+            "minor or surface-level improvement. "
+            "Next time: introduce a concrete constraint, a new direction, or "
+            "a specific decision the LLM hasn't considered. Make the LLM do "
+            "something it couldn't have done without your specific input."
+        )
+
+    if "stage 4" in reason_lower or "ejad" in reason_lower or "dissenter" in reason_lower:
+        return (
+            "Stage 4 (Ensemble Validation) flagged that your prompt did not "
+            "clearly demonstrate user-driven thinking. The dissenter found "
+            "evidence that you may be following the LLM's lead rather than "
+            "steering it. Next time: bring your own judgment — challenge LLM "
+            "assumptions, introduce domain-specific constraints, or redirect "
+            "based on context only you have."
+        )
+
+    # Generic fallback
+    return (
+        "This window was near-bar but didn't quite reach above-bar. "
+        "The core question is: did you drive the LLM, or did the LLM drive you? "
+        "To reach above-bar, your prompt should bring something the LLM could not "
+        "have produced alone — a sharp reframe, a specific constraint from your "
+        "context, or a genuine correction based on your own judgment."
+    )
 
 
 def _call_openai_raw(

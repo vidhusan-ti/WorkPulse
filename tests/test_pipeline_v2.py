@@ -477,3 +477,57 @@ class TestGraderV2:
             provider="openai", model="gpt-4o", api_key="test",
         )
         assert result["tier"] == "below_bar"
+
+
+# ===========================================================================
+# Template Coaching Fallback Tests
+# ===========================================================================
+
+class TestTemplateCoachinFallback:
+    """Tests for the template_coaching fallback in grader_v2."""
+
+    def test_stage2_intent_failure_message(self):
+        from src.pipeline.grader_v2 import _template_coaching
+        result = _template_coaching("Stage 2 (IOAS) failed: intent-outcome alignment score 0.120 below threshold.")
+        assert "Stage 2" in result
+        assert len(result) > 50
+
+    def test_stage3_trajectory_failure_message(self):
+        from src.pipeline.grader_v2 import _template_coaching
+        result = _template_coaching("Stage 3 (CTA): trajectory delta is 'weak'.")
+        assert "Stage 3" in result or "trajectory" in result.lower()
+
+    def test_stage4_ejad_failure_message(self):
+        from src.pipeline.grader_v2 import _template_coaching
+        result = _template_coaching("Stage 4 (EJAD) did not confirm above-bar. Dissenter raised strong objections.")
+        assert "Stage 4" in result or "dissenter" in result.lower()
+
+    def test_generic_fallback_message(self):
+        from src.pipeline.grader_v2 import _template_coaching
+        result = _template_coaching("Some unknown pipeline reason.")
+        assert len(result) > 50
+        assert "above-bar" in result or "LLM" in result
+
+    def test_near_bar_coaching_not_empty_on_llm_failure(self):
+        """When coaching LLM call fails, grader_v2 should return template coaching, not empty."""
+        from src.pipeline.grader_v2 import grade_window_v2
+        s2_pass = '{"intent": "x", "intent_clarity": 0.9, "outcome_precision": 0.9, "reasoning": "ok"}'
+        s3_weak = '{"trajectory_delta": "weak", "reasoning": "minor"}'
+        window = {
+            "turns": [
+                {"role": "user", "text": "Refactor the auth module to use OAuth2 PKCE."},
+                {"role": "assistant", "text": "Here is the OAuth2 PKCE implementation."},
+            ]
+        }
+        with patch("src.pipeline.stage2_ioas._call_llm_with_retry", return_value=s2_pass):
+            with patch("src.pipeline.stage3_cta._call_llm_with_retry", return_value=s3_weak):
+                # Make coaching LLM call fail
+                with patch("src.pipeline.grader_v2._call_openai_raw", side_effect=Exception("timeout")):
+                    result = grade_window_v2(
+                        window, rubric_path="data/manual_rubric.md",
+                        provider="openai", model="gpt-4o", api_key="test",
+                    )
+        assert result["tier"] == "near_bar"
+        # Coaching should not be empty — template fallback should kick in
+        assert result["coaching"] != ""
+        assert len(result["coaching"]) > 20
