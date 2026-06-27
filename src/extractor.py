@@ -104,9 +104,20 @@ def get_window_text(window: Dict[str, Any]) -> str:
     lines = []
     for turn in window["turns"]:
         role = turn.get("role", "unknown").upper()
-        text = turn.get("text", "")
+        text = _clean_text(turn.get("text", ""))
         # Truncate very long assistant responses
         if role == "ASSISTANT" and len(text) > 2000:
             text = text[:2000] + "\n[... truncated ...]"
         lines.append(f"[{role}]\n{text}")
     return "\n\n".join(lines)
+
+
+def _clean_text(text: str) -> str:
+    """Strip Cursor metadata tags from user text for cleaner grading."""
+    import re
+    # Remove <timestamp>...</timestamp>
+    text = re.sub(r'<timestamp>.*?</timestamp>', '', text, flags=re.DOTALL)
+    # Remove <user_query> tags but keep content
+    text = re.sub(r'<user_query>\s*', '', text)
+    text = re.sub(r'\s*</user_query>', '', text)
+    return text.strip()

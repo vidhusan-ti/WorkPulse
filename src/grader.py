@@ -4,6 +4,7 @@ Returns tier (above_bar / near_bar / below_bar), reason, and coaching.
 """
 import json
 import os
+import time
 from typing import Dict, Any
 
 from src.extractor import get_window_text
@@ -24,48 +25,83 @@ SYSTEM_PROMPT_TEMPLATE = """{rubric}
 
 You are grading a window of a Cursor conversation.
 
-Respond ONLY with valid JSON in this exact format:
+Respond ONLY with valid JSON in this exact format (no markdown, no code fences, just raw JSON):
 {{
-  "tier": "above_bar" | "near_bar" | "below_bar",
-  "label": "mindblowing_portfolio" | "outstanding_portfolio" | "strong_highlight" | "mindblowing_highlight" | "below_bar",
-  "score": <integer 0-10>,
-  "reason": "<one paragraph explaining the grade>",
-  "coaching": "<specific coaching note for the user — what was missing and why>",
-  "better_prompt": "<a concrete example of a stronger version of the user's last prompt, or empty string if above_bar>"
+  "tier": "above_bar",
+  "label": "outstanding_portfolio",
+  "score": 8,
+  "reason": "one paragraph explaining the grade",
+  "coaching": "",
+  "better_prompt": ""
 }}
 
-Tier mapping:
-- above_bar: mindblowing_portfolio or outstanding_portfolio
-- near_bar: strong_highlight or mindblowing_highlight  
-- below_bar: below_bar
+Tier must be exactly one of: above_bar, near_bar, below_bar
+Label must be exactly one of: mindblowing_portfolio, outstanding_portfolio, strong_highlight, mindblowing_highlight, below_bar
 
-Do not include any text outside the JSON object.
+Tier mapping:
+- above_bar: use mindblowing_portfolio (9-10) or outstanding_portfolio (7-8)
+- near_bar: use mindblowing_highlight (5-6) or strong_highlight (4-5)
+- below_bar: use below_bar (0-3)
+
+coaching and better_prompt: fill only for near_bar, leave empty string for others.
 """
+
+
+def _fallback_grade() -> Dict[str, Any]:
+    return {
+        "tier": "below_bar",
+        "label": "below_bar",
+        "score": 0,
+        "reason": "Grader returned empty response.",
+        "coaching": "",
+        "better_prompt": "",
+    }
 
 
 def grade_window(
     window: Dict[str, Any],
     rubric_path: str,
-    provider: str = "openai",
-    model: str = "gpt-4o",
+    provider: str = "anthropic",
+    model: str = "claude-sonnet-4-5",
     api_key: str = None,
+    max_retries: int = 3,
 ) -> Dict[str, Any]:
-    """
-    Grade a conversation window using the LLM.
-    Returns grade dict with tier, label, score, reason, coaching, better_prompt.
-    """
     rubric = load_rubric(rubric_path)
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(rubric=rubric)
     window_text = get_window_text(window)
-
     user_message = f"Grade this conversation window:\n\n{window_text}"
 
-    if provider == "openai":
-        return _grade_openai(system_prompt, user_message, model, api_key)
-    elif provider == "anthropic":
-        return _grade_anthropic(system_prompt, user_message, model, api_key)
-    else:
-        raise ValueError(f"Unknown provider: {provider}")
+    for attempt in range(max_retries):
+        try:
+            if provider == "openai":
+                result = _grade_openai(system_prompt, user_message, model, api_key)
+            elif provider == "anthropic":
+                result = _grade_anthropic(system_prompt, user_message, model, api_key)
+            else:
+                raise ValueError(f"Unknown provider: {provider}")
+
+            # Validate required fields
+            if "tier" not in result:
+                raise ValueError("Missing 'tier' in grade response")
+            if result["tier"] not in ("above_bar", "near_bar", "below_bar"):
+                raise ValueError(f"Invalid tier: {result['tier']}")
+
+            return result
+
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            print(f"[grader] Warning: parse error after {max_retries} attempts: {e}")
+            return _fallback_grade()
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            print(f"[grader] Error: {e}")
+            return _fallback_grade()
+
+    return _fallback_grade()
 
 
 def _grade_openai(system_prompt: str, user_message: str, model: str, api_key: str) -> Dict[str, Any]:
@@ -85,6 +121,8 @@ def _grade_openai(system_prompt: str, user_message: str, model: str, api_key: st
         response_format={"type": "json_object"},
     )
     raw = response.choices[0].message.content
+    if not raw or not raw.strip():
+        raise ValueError("Empty response from OpenAI")
     return json.loads(raw)
 
 
@@ -101,7 +139,16 @@ def _grade_anthropic(system_prompt: str, user_message: str, model: str, api_key:
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}],
     )
-    raw = response.content[0].text
-    # Strip any markdown code fences if present
-    raw = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+    raw = response.content[0].text if response.content else ""
+    if not raw or not raw.strip():
+        raise ValueError("Empty response from Anthropic")
+
+    # Strip markdown code fences if present
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    raw = raw.strip()
+
     return json.loads(raw)
