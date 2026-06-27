@@ -95,10 +95,15 @@ class TranscriptWatcher:
         return {watch_root} if os.path.exists(watch_root) else set()
 
     def _poll_loop(self):
-        """Polling fallback — checks all glob files every poll_interval seconds."""
+        """Polling fallback — checks all glob files every poll_interval seconds.
+        
+        Uses os.walk instead of glob.glob so that hidden directories (like
+        ~/.cursor) are traversed correctly on all platforms.  glob.glob on
+        Python < 3.11 skips hidden dirs on some systems.
+        """
         while self._running:
             try:
-                files = glob.glob(self.transcript_glob, recursive=True)
+                files = self._find_transcript_files()
                 for path in files:
                     try:
                         mtime = os.path.getmtime(path)
@@ -110,3 +115,22 @@ class TranscriptWatcher:
             except Exception:
                 pass
             time.sleep(self.poll_interval)
+
+    def _find_transcript_files(self):
+        """Find all .jsonl files under the watch root using os.walk.
+        
+        Handles hidden directories (e.g. ~/.cursor/) that glob.glob may miss.
+        Falls back to glob if watch root cannot be determined.
+        """
+        watch_dirs = self._get_watch_dirs()
+        if not watch_dirs:
+            # fallback to glob
+            return glob.glob(self.transcript_glob, recursive=True)
+        
+        found = []
+        for root_dir in watch_dirs:
+            for dirpath, _dirnames, filenames in os.walk(root_dir):
+                for fname in filenames:
+                    if fname.endswith(".jsonl"):
+                        found.append(os.path.join(dirpath, fname))
+        return found
