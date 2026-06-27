@@ -198,6 +198,7 @@ def run_stage4(
     if not judges_agree:
         return {
             "passed": False,
+            "failure_mode": "judge_disagreement",
             "standard_verdict": standard_verdict,
             "dissenter_objection": "Skipped (judges did not agree).",
             "final_reasoning": (
@@ -247,6 +248,7 @@ def run_stage4(
             f"was weak (confidence={dissenter_confidence:.2f} ≤ {DISSENTER_WEAK_THRESHOLD}). "
             f"Standard verdict: {standard_verdict}."
         )
+        failure_mode = None
     else:
         if not dissenter_objection_weak:
             final_reasoning = (
@@ -254,17 +256,22 @@ def run_stage4(
                 f"(confidence={dissenter_confidence:.2f} > {DISSENTER_WEAK_THRESHOLD}): "
                 f"{dissenter_result['summary']}"
             )
+            failure_mode = "strong_dissenter"
         else:
             final_reasoning = (
                 f"Standard judges did not unanimously agree. {standard_verdict}"
             )
+            failure_mode = "judge_disagreement"
 
-    return {
+    result = {
         "passed": passed,
         "standard_verdict": standard_verdict,
         "dissenter_objection": dissenter_objection,
         "final_reasoning": final_reasoning,
     }
+    if failure_mode is not None:
+        result["failure_mode"] = failure_mode
+    return result
 
 
 # ---------------------------------------------------------------------------
