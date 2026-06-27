@@ -54,31 +54,52 @@ TIER_DEFAULTS: Dict[str, Dict[str, Any]] = {
 # Coaching / better_prompt generation prompt (reuses grader LLM infra)
 # ---------------------------------------------------------------------------
 
-COACHING_SYSTEM = """\
-You are a prompt-quality coach. Given a near-bar conversation window, provide:
-1. coaching: one paragraph of actionable advice for how the user could improve
-   their prompting in this context.
+COACHING_SYSTEM = """You are a prompt-quality coach for AI-assisted development.
+
+CORE QUESTION: Did the user drive the LLM, or did the LLM drive the user?
+Your coaching must help the user become a better driver.
+
+Given a near-bar conversation window and the specific pipeline stage that
+caused it to fall short, provide:
+1. coaching: one paragraph of actionable, specific advice. Reference exactly
+   which stage the window failed (Stage 2: intent clarity, Stage 3: trajectory
+   impact, or Stage 4: dissenter objection) and what the user needs to change.
+   Avoid generic advice — be concrete about THIS window.
 2. better_prompt: a concrete rewritten version of the focal user prompt that
-   would more clearly drive the LLM toward a specific, valuable outcome.
+   addresses the specific failure. The rewrite should make the user's intent
+   clearer, bring genuine user-originated insight, and steer the LLM more
+   effectively.
+
+Common coaching patterns for near-bar outcomes:
+- Stage 2 failed (low intent_clarity): User needs to express their own goal
+  more specifically — what to do, why, and what constraints apply.
+- Stage 2 failed (low outcome_precision): Prompt was too vague; rewrite with
+  tighter scope so the LLM addresses the intent precisely.
+- Stage 3 failed (weak/no trajectory): Prompt did not move conversation forward;
+  rewrite to introduce a new direction or concrete constraint.
+- Stage 4 failed (dissenter objection): Identify the anti-pattern (e.g. user
+  restating LLM output, user just approving) and rewrite showing user judgment.
 
 Respond ONLY with valid JSON — no markdown, no code fences:
 {
-  "coaching": "<one paragraph>",
-  "better_prompt": "<rewritten prompt>"
+  "coaching": "<specific actionable paragraph referencing the failing stage>",
+  "better_prompt": "<rewritten prompt addressing the specific failure>"
 }
 """
 
-COACHING_USER_TEMPLATE = """\
-CONVERSATION WINDOW:
+COACHING_USER_TEMPLATE = """CONVERSATION WINDOW:
 
 {conversation_text}
 
 FOCAL USER PROMPT:
 {focal_user_prompt}
 
-PIPELINE ASSESSMENT: {pipeline_reason}
+PIPELINE FAILURE REASON:
+{pipeline_reason}
 
-Provide coaching and a better_prompt.
+Provide specific coaching that addresses the exact failure reason above.
+Tell the user which stage failed, why it failed, and what specifically they
+should do differently. Then provide a concrete better_prompt rewrite.
 """
 
 # ---------------------------------------------------------------------------
