@@ -4,7 +4,7 @@ persister.py — Persists grade results to graded_events.jsonl and tracks graded
 import json
 import os
 from typing import Dict, Any, Set
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def load_graded_indices(graded_events_file: str) -> Dict[str, Set[int]]:
@@ -38,7 +38,7 @@ def persist_grade(
 ) -> None:
     """Append a grade result to graded_events.jsonl."""
     event = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(tz=__import__("datetime").timezone.utc).isoformat(),
         "transcript_path": transcript_path,
         "start_index": window["start_index"],
         "end_index": window["end_index"],

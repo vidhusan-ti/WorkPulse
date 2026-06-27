@@ -32,26 +32,28 @@ def test_load_transcript_basic():
 
 
 def test_extract_windows_basic():
+    # extract_windows expects normalised turns (role/text format, as returned by load_transcript)
     turns = [
-        {"type": "user", "text": "Q1"},
-        {"type": "assistant", "text": "A1"},
-        {"type": "user", "text": "Q2"},
-        {"type": "assistant", "text": "A2"},
-        {"type": "user", "text": "Q3"},
-        {"type": "assistant", "text": "A3"},
+        {"role": "user", "text": "Q1"},
+        {"role": "assistant", "text": "A1"},
+        {"role": "user", "text": "Q2"},
+        {"role": "assistant", "text": "A2"},
+        {"role": "user", "text": "Q3"},
+        {"role": "assistant", "text": "A3"},
     ]
     windows = extract_windows(turns, window_size=3)
     # Should produce windows starting at user turns
     assert len(windows) >= 1
     for w in windows:
-        assert w["turns"][0]["type"] == "user"
+        assert w["turns"][0]["role"] == "user"
 
 
 def test_window_text_format():
+    # get_window_text expects normalised turns (role/text format)
     window = {
         "turns": [
-            {"type": "user", "text": "What is X?"},
-            {"type": "assistant", "text": "X is Y."},
+            {"role": "user", "text": "What is X?"},
+            {"role": "assistant", "text": "X is Y."},
         ],
         "start_index": 0,
         "end_index": 1,
@@ -63,13 +65,14 @@ def test_window_text_format():
 
 
 def test_extract_windows_skips_assistant_start():
+    # extract_windows expects normalised turns
     turns = [
-        {"type": "assistant", "text": "Welcome"},
-        {"type": "user", "text": "Q1"},
-        {"type": "assistant", "text": "A1"},
+        {"role": "assistant", "text": "Welcome"},
+        {"role": "user", "text": "Q1"},
+        {"role": "assistant", "text": "A1"},
     ]
     windows = extract_windows(turns)
-    assert all(w["turns"][0]["type"] == "user" for w in windows)
+    assert all(w["turns"][0]["role"] == "user" for w in windows)
 
 
 def test_load_transcript_skips_bad_lines():
