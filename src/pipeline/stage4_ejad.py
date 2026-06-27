@@ -3,6 +3,10 @@ stage4_ejad.py — Stage 4: Ensemble + Adversarial Dissenter (EJAD)
 
 Final validation gate, only reached by above_bar_candidates from Stage 3.
 
+Core rubric question: Did the user drive the LLM, or did the LLM drive the user?
+This stage uses two standard judges and one adversarial dissenter to ensure
+that only genuinely user-driven, non-trivial prompts reach above-bar.
+
 Architecture (cost-efficient dual-role design):
   1. STANDARD JUDGE call: one LLM call instructed to play *two* standard
      judges and return both verdicts in a single JSON response.
@@ -284,7 +288,11 @@ def _format_conversation(turns: List[Dict[str, Any]]) -> str:
 
 def _parse_standard_judges(raw: str) -> Dict[str, Any]:
     """Parse and validate standard judges JSON response."""
-    data = json.loads(raw)
+    cleaned = _strip_markdown(raw)
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        data = json.loads(raw)
     for judge_key in ("judge_a", "judge_b"):
         if judge_key not in data:
             raise KeyError(f"Missing key: {judge_key}")
@@ -300,7 +308,11 @@ def _parse_standard_judges(raw: str) -> Dict[str, Any]:
 
 def _parse_dissenter(raw: str) -> Dict[str, Any]:
     """Parse and validate dissenter JSON response."""
-    data = json.loads(raw)
+    cleaned = _strip_markdown(raw)
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        data = json.loads(raw)
     for field in ("objections", "confidence_not_above_bar", "summary"):
         if field not in data:
             raise KeyError(f"Missing key: {field}")
