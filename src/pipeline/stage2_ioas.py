@@ -4,9 +4,9 @@ stage2_ioas.py — Stage 2: Intent-Outcome Alignment Scoring (IOAS)
 Steering check: did the user's prompt have a clear intent, and did the LLM
 actually serve that intent precisely?
 
-The rubric question here is whether the user *steered* the conversation with
-purpose and the LLM delivered on it — as opposed to the LLM wandering off, or
-the user's intent being so vague that alignment is accidental.
+Core rubric question: Did the user drive the LLM, or did the LLM drive the user?
+A prompt that merely restates LLM output scores low on intent_clarity even if
+syntactically well-formed — the user must bring independent steering intent.
 
 Algorithm:
   1. Send the focal user turn + immediate LLM response to an LLM judge.
@@ -169,11 +169,31 @@ def _extract_focal_pair(
 
 
 def _parse_and_validate(raw: str) -> Dict[str, Any]:
-    """Parse LLM JSON output and validate required fields."""
-    data = json.loads(raw)
-    for key in ("intent", "intent_clarity", "outcome_precision", "reasoning"):
+    """Parse LLM JSON output and validate required fields.
+
+    Attempts to recover from:
+    - Leading/trailing markdown fences
+    - Partial JSON with only numeric scores (missing text fields)
+    """
+    # Strip any markdown fences (defensive — Anthropic sometimes adds them)
+    cleaned = _strip_markdown(raw)
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        # Last-ditch: try the original raw
+        data = json.loads(raw)
+
+    # Provide defaults for optional text fields to avoid hard failures
+    if "intent" not in data:
+        data["intent"] = ""
+    if "reasoning" not in data:
+        data["reasoning"] = ""
+
+    # Numeric scores are required
+    for key in ("intent_clarity", "outcome_precision"):
         if key not in data:
-            raise KeyError(f"Missing key: {key}")
+            raise KeyError(f"Missing required key: {key}")
+
     # Clamp scores to [0, 1]
     data["intent_clarity"] = max(0.0, min(1.0, float(data["intent_clarity"])))
     data["outcome_precision"] = max(0.0, min(1.0, float(data["outcome_precision"])))
