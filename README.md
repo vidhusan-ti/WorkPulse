@@ -8,7 +8,7 @@ Monitors your Cursor conversations in real-time and gives you feedback on your p
 - **Grades** each conversation window against the WorkPulse rubric
 - **Above bar** → asks you to approve saving it to your portfolio
 - **Near bar** → coaching popup explaining what was missing and how to improve
-- **Average** → silently ignored (no noise)
+- **Below bar** → silently ignored (no noise)
 - **10-minute nudge** → if you haven't had a quality prompt in 10 minutes, a floating reminder appears
 
 ## Quick Start
@@ -48,6 +48,7 @@ Edit `config/settings.json`:
 | `llm_provider` | `openai` or `anthropic` | `openai` |
 | `llm_model` | Model name | `gpt-4o` |
 | `llm_max_grades_per_cycle` | Max windows graded per check | 3 |
+| `use_pipeline_v2` | Use 4-stage pipeline v2 (recommended) | `true` |
 
 ## Cursor Transcript Location
 
@@ -66,13 +67,21 @@ pytest tests/
 ```
 workpulse/
 ├── src/
-│   ├── watcher.py      # File system watcher (cross-platform)
-│   ├── extractor.py    # Window extraction from JSONL
-│   ├── grader.py       # LLM grader
-│   ├── persister.py    # Grade storage
-│   ├── notifier.py     # Notification router + 10-min timer
-│   ├── popup.py        # Floating overlay UI (tkinter)
-│   └── portfolio.py    # portfolio.md writer
+│   ├── pipeline/              # 4-stage grading pipeline v2
+│   │   ├── __init__.py        # Public API: grade_window_v2
+│   │   ├── grader_v2.py       # Pipeline orchestrator
+│   │   ├── stage1_snd.py      # Semantic Novelty Detection
+│   │   ├── stage2_ioas.py     # Intent-Outcome Alignment Scoring
+│   │   ├── stage3_cta.py      # Conversation Trajectory Analysis
+│   │   └── stage4_ejad.py     # Ensemble + Adversarial Dissenter
+│   ├── watcher.py             # File system watcher (cross-platform)
+│   ├── extractor.py           # Window extraction from JSONL
+│   ├── grader.py              # LLM grader v1 (legacy)
+│   ├── monitor.py             # Main loop — wires all components
+│   ├── persister.py           # Grade storage + SWOD deduplication
+│   ├── notifier.py            # Notification router + 10-min timer
+│   ├── popup.py               # Floating overlay UI (tkinter)
+│   └── portfolio.py           # portfolio.md writer
 ├── data/
 │   ├── manual_rubric.md     # The grading rubric
 │   ├── graded_events.jsonl  # Grade history
