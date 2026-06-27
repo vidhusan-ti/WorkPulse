@@ -1,7 +1,7 @@
 # PROJECT_STATE.md — WorkPulse
 
 **Last Updated:** 2026-06-27
-**Status:** Phase 2 Complete — Core pipeline built and tested
+**Status:** Phase 5 Active — Pipeline v2 complete, 73 tests passing, monitor wired
 
 ## What Is WorkPulse
 
@@ -19,20 +19,28 @@ A cross-platform Cursor conversation monitor that:
 **Phase 1 (Planning):** ✅ Done
 **Phase 2 (Core Pipeline):** ✅ Done — all 6 tests passing
 **Phase 3 (Popup UI):** ✅ Done (tkinter-based floating overlay)
-**Phase 4 (Monitor Loop):** ✅ Done
-**Phase 5 (Polish):** 🔄 In progress
+**Phase 4 (Monitor Loop):** ✅ Done (now uses pipeline v2 by default)
+**Phase 5 (Pipeline v2):** ✅ Done — 4-stage SND→IOAS→CTA→EJAD, 73 tests
+**Phase 6 (Polish):** 🔄 In progress
 
 ## Components Status
 
-- [x] Transcript watcher (watchdog + polling fallback)
+- [x] Transcript watcher (watchdog + os.walk polling, handles hidden .cursor dirs)
 - [x] Window extractor (sliding 3-turn windows)
-- [x] Grader (OpenAI / Anthropic, configurable)
-- [x] Grade persister (graded_events.jsonl)
+- [x] Grader v1 (OpenAI / Anthropic, legacy)
+- [x] Grader v2 — 4-stage pipeline (SND→IOAS→CTA→EJAD)
+- [x] Stage 1 (SND) — Jaccard/embedding novelty detection
+- [x] Stage 2 (IOAS) — Intent-outcome alignment scoring
+- [x] Stage 3 (CTA) — Conversation trajectory analysis
+- [x] Stage 4 (EJAD) — Ensemble + adversarial dissenter
+- [x] Grade persister (graded_events.jsonl + focal_prompt_hash + trace summary)
+- [x] SWOD deduplication (Proposal 12 — no duplicate above-bar counts)
 - [x] Popup UI (tkinter floating overlay)
-- [x] Portfolio writer (portfolio.md)
+- [x] Portfolio writer (portfolio.md with pipeline trace summary)
 - [x] 10-min inactivity monitor + nudge
 - [x] CLI entry point (main.py with --setup wizard)
 - [x] README with platform-specific transcript paths
+- [x] 73 tests (pipeline stages, extractor, persister)
 
 ## Next Steps
 
