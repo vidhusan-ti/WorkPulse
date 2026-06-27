@@ -678,3 +678,62 @@ class TestStage2CoachingOnFailure:
         assert result["tier"] == "below_bar"
         # Stage 1 failures: no coaching (too noisy, low-quality signal)
         assert result["coaching"] == ""
+
+
+class TestStage3HasFollowUp:
+    """Tests for Stage 3 has_follow_up_turns fix (prevents KeyError in production)."""
+
+    def test_has_follow_up_with_assistant_turn(self):
+        from src.pipeline.stage3_cta import _has_follow_up_turns
+        turns = [
+            {"role": "user", "text": "Implement retry."},
+            {"role": "assistant", "text": "Here is the retry implementation."},
+        ]
+        assert _has_follow_up_turns(turns, "Implement retry.") is True
+
+    def test_has_follow_up_solo_user(self):
+        from src.pipeline.stage3_cta import _has_follow_up_turns
+        turns = [{"role": "user", "text": "Implement retry."}]
+        assert _has_follow_up_turns(turns, "Implement retry.") is False
+
+    def test_has_follow_up_multi_turn(self):
+        from src.pipeline.stage3_cta import _has_follow_up_turns
+        turns = [
+            {"role": "assistant", "text": "Prior LLM"},
+            {"role": "user", "text": "Add backoff"},
+            {"role": "assistant", "text": "Here is backoff"},
+            {"role": "user", "text": "Make it jittered"},
+        ]
+        assert _has_follow_up_turns(turns, "Add backoff") is True
+
+    def test_cta_template_has_follow_up_placeholder(self):
+        """The CTA_USER_TEMPLATE must have the {has_follow_up} placeholder."""
+        from src.pipeline.stage3_cta import CTA_USER_TEMPLATE
+        assert "{has_follow_up}" in CTA_USER_TEMPLATE
+
+    def test_run_stage3_no_key_error_on_single_user_turn(self):
+        """run_stage3 should NOT raise KeyError for single-turn windows."""
+        from src.pipeline.stage3_cta import run_stage3
+        import json
+        window = {"turns": [{"role": "user", "text": "Refactor to use DI."}]}
+        mock_resp = json.dumps({"trajectory_delta": "moderate", "reasoning": "Strong constraint."})
+        with patch("src.pipeline.stage3_cta._call_llm_with_retry", return_value=mock_resp):
+            result = run_stage3(window, provider="openai", model="gpt-4o", api_key="test")
+        assert result["trajectory_delta"] == "moderate"
+
+    def test_run_stage3_has_follow_up_in_message(self):
+        """run_stage3 should pass has_follow_up to the LLM prompt."""
+        from src.pipeline.stage3_cta import run_stage3
+        import json
+        window = {
+            "turns": [
+                {"role": "user", "text": "Use DI pattern."},
+                {"role": "assistant", "text": "Here is DI."},
+            ]
+        }
+        mock_resp = json.dumps({"trajectory_delta": "strong", "reasoning": "User directed DI adoption."})
+        with patch("src.pipeline.stage3_cta._call_llm_with_retry", return_value=mock_resp) as mock_llm:
+            run_stage3(window, provider="openai", model="gpt-4o", api_key="test")
+        call_args = mock_llm.call_args
+        user_msg = call_args[1].get("user_message", "")
+        assert "Follow-up turns available" in user_msg
