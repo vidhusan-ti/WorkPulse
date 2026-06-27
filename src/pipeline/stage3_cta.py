@@ -43,8 +43,11 @@ ABOVE_BAR_DELTAS = {"strong", "moderate"}
 CTA_SYSTEM_PROMPT = """\
 You are an expert conversation quality judge specialising in trajectory analysis.
 
+Core rubric question: Did the USER drive the LLM, or did the LLM drive the user?
+Only prompts where the USER meaningfully advanced the conversation should be above-bar.
+
 Your task: analyse how the conversation changed in direction, quality, and
-specificity *after* the focal user prompt. Assess the trajectory delta.
+specificity AFTER the focal user prompt. Assess the trajectory delta.
 
 Trajectory delta definitions:
 - "strong"   : The user prompt clearly advanced the conversation — introduced
@@ -54,24 +57,28 @@ Trajectory delta definitions:
 - "moderate" : The user prompt noticeably improved the conversation — added
                useful context, refined scope, or redirected away from a
                dead-end with clear intent.
-- "weak"     : The user prompt caused only minor or surface-level change —
-               small clarifications that didn't meaningfully advance things,
-               or improvement that the LLM would have reached anyway.
-- "none"     : The user prompt caused no improvement, or the conversation
-               drifted, stalled, or degraded after it.
+- "weak"     : The user prompt caused only minor or surface-level change.
+               The LLM would likely have reached the same place without it.
+- "none"     : No improvement, or conversation drifted/stalled/degraded.
 
 Consider:
 1. Was the next LLM response better (more specific, accurate, useful) because
    of this user prompt?
-2. Did the following user turn (if present) show deeper engagement, suggesting
-   the prior exchange was productive?
+2. Did the following user turn show deeper engagement, suggesting this exchange
+   was productive?
 3. Would removing this user turn have materially changed the conversation's
    trajectory?
+
+Important edge case — NO FOLLOW-UP TURNS:
+If no follow-up turns are available (end of transcript), judge the trajectory
+based solely on the quality and specificity of the focal user prompt itself,
+and how well the immediate LLM response addresses it. Default to "moderate"
+only if the prompt shows strong, specific user intent.
 
 Respond ONLY with valid JSON — no markdown, no code fences:
 {
   "trajectory_delta": "<strong|moderate|weak|none>",
-  "reasoning": "<one paragraph explaining your assessment>"
+  "reasoning": "<one paragraph explaining your assessment, referencing user vs LLM drive>"
 }
 """
 
@@ -83,7 +90,10 @@ CONVERSATION WINDOW:
 FOCAL USER PROMPT (the turn being graded):
 {focal_user_prompt}
 
+Follow-up turns available: {has_follow_up}
+
 Assess the trajectory delta caused by this focal user prompt.
+Remember: did the USER drive this exchange or did the LLM drive the user?
 """
 
 # ---------------------------------------------------------------------------
