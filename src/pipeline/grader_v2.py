@@ -512,6 +512,22 @@ def _template_coaching(pipeline_reason: str) -> str:
         )
 
     if "stage 4" in reason_lower or "ejad" in reason_lower or "dissenter" in reason_lower:
+        if "strong_dissenter" in reason_lower or "strong objection" in reason_lower:
+            return (
+                "Stage 4 (Ensemble): the adversarial dissenter found strong evidence "
+                "that this prompt was NOT user-driven. Common causes: user restating LLM output, "
+                "user just approving/confirming, or the core insight came from the LLM, not you. "
+                "Next time: bring judgment the LLM couldn't have — domain constraints, "
+                "correction based on what you know about the system, or a sharp reframe."
+            )
+        if "judge_disagreement" in reason_lower or "did not agree" in reason_lower:
+            return (
+                "Stage 4 (Ensemble): the two judges disagreed on whether this prompt "
+                "was above-bar. This means it was borderline — one judge saw user-driven "
+                "thinking, the other wasn't convinced. To make it unambiguous next time: "
+                "make your unique insight or constraint more explicit, so both judges would "
+                "recognise it immediately as something only you could contribute."
+            )
         return (
             "Stage 4 (Ensemble Validation) flagged that your prompt did not "
             "clearly demonstrate user-driven thinking. The dissenter found "
