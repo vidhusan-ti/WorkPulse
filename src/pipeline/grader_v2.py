@@ -249,15 +249,25 @@ def grade_window_v2(
     pipeline_trace["stage2_ioas"] = s2
 
     if not s2.get("passed", False):
+        s2_reason = (
+            f"Stage 2 (IOAS) failed: intent-outcome alignment score "
+            f"{s2.get('score', 0.0):.3f} below threshold. "
+            f"{s2.get('reasoning', '')}"
+        )
+        # Stage 2 failures are highly actionable — generate coaching
+        # so users know exactly what made their prompt lack user-driven intent.
+        s2_coaching, s2_better_prompt = _get_coaching(
+            window=window,
+            pipeline_reason=s2_reason,
+            provider=provider,
+            model=model,
+            api_key=api_key,
+        )
         return _build_result(
             tier="below_bar",
-            reason=(
-                f"Stage 2 (IOAS) failed: intent-outcome alignment score "
-                f"{s2.get('score', 0.0):.3f} below threshold. "
-                f"{s2.get('reasoning', '')}"
-            ),
-            coaching="",
-            better_prompt="",
+            reason=s2_reason,
+            coaching=s2_coaching,
+            better_prompt=s2_better_prompt,
             pipeline_trace=pipeline_trace,
         )
 

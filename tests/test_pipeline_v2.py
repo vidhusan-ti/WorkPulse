@@ -615,3 +615,66 @@ class TestLabelRefinement:
         # With high S2 score (0.765) and moderate trajectory → mindblowing_highlight
         assert result["label"] in ("mindblowing_highlight", "strong_highlight")
         assert result["score"] >= 4
+
+
+class TestStage2CoachingOnFailure:
+    """Stage 2 failures should now generate coaching, not empty strings."""
+
+    def test_stage2_below_bar_gets_coaching(self):
+        """When Stage 2 fails, below_bar result should have non-empty coaching."""
+        from src.pipeline.grader_v2 import grade_window_v2
+        import json
+
+        s1_pass_window = {
+            "turns": [
+                {"role": "user", "text": "Implement dependency injection for all service classes."},
+                {"role": "assistant", "text": "The strategy pattern would work better here."},
+            ]
+        }
+        # Mock Stage 1 to pass, Stage 2 to fail (low score)
+        s1_pass = {"passed": True, "novelty_score": 0.85, "reason": "Novel", "method": "jaccard"}
+        s2_fail = json.dumps({
+            "intent": "code refactor", "intent_clarity": 0.1, "outcome_precision": 0.05,
+            "reasoning": "User gave no constraints, LLM did all thinking."
+        })
+        coaching_mock = json.dumps({
+            "coaching": "Add specific requirements to your prompt.",
+            "better_prompt": "Refactor X to use Y pattern because Z."
+        })
+
+        with patch("src.pipeline.grader_v2.run_stage1", return_value=s1_pass):
+            with patch("src.pipeline.stage2_ioas._call_llm_with_retry", return_value=s2_fail):
+                with patch("src.pipeline.grader_v2._call_openai_raw", return_value=coaching_mock):
+                    result = grade_window_v2(
+                        s1_pass_window,
+                        rubric_path="data/manual_rubric.md",
+                        provider="openai", model="gpt-4o", api_key="test",
+                    )
+
+        assert result["tier"] == "below_bar"
+        # The key assertion: below_bar from Stage 2 now gets coaching
+        assert result["coaching"] != ""
+        assert len(result["coaching"]) > 10
+
+    def test_stage1_below_bar_no_coaching(self):
+        """Stage 1 failures (low novelty) should NOT generate coaching — it's just spam."""
+        from src.pipeline.grader_v2 import grade_window_v2
+        import json
+
+        restate_window = {
+            "turns": [
+                {"role": "user", "text": "Use lazy initialisation for the connection pool."},
+                {"role": "assistant", "text": "Use lazy initialisation for the connection pool."},
+            ]
+        }
+
+        with patch("src.pipeline.stage1_snd._jaccard_novelty", return_value=0.0):
+            result = grade_window_v2(
+                restate_window,
+                rubric_path="data/manual_rubric.md",
+                provider="openai", model="gpt-4o", api_key="test",
+            )
+
+        assert result["tier"] == "below_bar"
+        # Stage 1 failures: no coaching (too noisy, low-quality signal)
+        assert result["coaching"] == ""
