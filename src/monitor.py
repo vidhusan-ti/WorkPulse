@@ -10,6 +10,7 @@ from typing import Dict, Any
 from src.watcher import TranscriptWatcher
 from src.extractor import get_new_windows
 from src.grader import grade_window
+from src.pipeline import grade_window_v2
 from src.persister import load_graded_indices, persist_grade
 from src.notifier import Notifier
 
@@ -31,6 +32,8 @@ class WorkPulseMonitor:
         self.llm_api_key = config.get("llm_api_key") or os.environ.get(
             config.get("llm_api_key_env", "OPENAI_API_KEY")
         )
+        # Feature flag: use 4-stage pipeline v2 (default: True)
+        self.use_pipeline_v2 = config.get("use_pipeline_v2", True)
 
         self.notifier = Notifier(self.portfolio_file, self.inactive_minutes)
         self._graded_indices: Dict[str, set] = {}
@@ -96,13 +99,22 @@ class WorkPulseMonitor:
         for window in windows:
             try:
                 print(f"[WorkPulse] Grading window at index {window['start_index']} in {os.path.basename(path)}")
-                grade = grade_window(
-                    window,
-                    rubric_path=self.rubric_file,
-                    provider=self.llm_provider,
-                    model=self.llm_model,
-                    api_key=self.llm_api_key,
-                )
+                if self.use_pipeline_v2:
+                    grade = grade_window_v2(
+                        window,
+                        rubric_path=self.rubric_file,
+                        provider=self.llm_provider,
+                        model=self.llm_model,
+                        api_key=self.llm_api_key,
+                    )
+                else:
+                    grade = grade_window(
+                        window,
+                        rubric_path=self.rubric_file,
+                        provider=self.llm_provider,
+                        model=self.llm_model,
+                        api_key=self.llm_api_key,
+                    )
 
                 persist_grade(self.graded_events_file, path, window, grade)
                 self._graded_indices.setdefault(path, set()).add(window["start_index"])

@@ -11,5 +11,6 @@
   "data_dir": "data",
   "portfolio_file": "data/portfolio.md",
   "graded_events_file": "data/graded_events.jsonl",
-  "rubric_file": "data/manual_rubric.md"
+  "rubric_file": "data/manual_rubric.md",
+  "use_pipeline_v2": true
 }
