@@ -72,3 +72,29 @@
 **Decision:** Anthropic Claude (claude-sonnet-4-5 as default)
 **Reason:** Better nuanced judgment, longer context, more reliable JSON, superior attribution reasoning — all critical for the rubric's core question.
 **Date:** 2026-06-27
+---
+
+## D-010 — 4-Stage Pipeline v2 (SND→IOAS→CTA→EJAD)
+**Decision:** Replace single-shot grader with 4-stage pipeline
+| Stage | Name | Role |
+|-------|------|------|
+| 1 | SND — Semantic Novelty Detection | Cheap local pre-filter; rejects restates |
+| 2 | IOAS — Intent-Outcome Alignment Scoring | LLM: did user drive the outcome? |
+| 3 | CTA — Conversation Trajectory Analysis | LLM: did conversation improve? |
+| 4 | EJAD — Ensemble + Adversarial Dissenter | Final validation with dissenter |
+**Reason:** Single-shot LLM graders have poor calibration for the "user vs LLM driving" distinction. The pipeline allows early stopping (cost savings) and each stage focuses on one dimension.
+**Date:** 2026-06-27
+
+---
+
+## D-011 — use_pipeline_v2 Feature Flag
+**Decision:** Add `use_pipeline_v2` boolean config flag (default: True)
+**Reason:** Allows rollback to v1 grader if v2 has issues. Preserves backwards compatibility.
+**Date:** 2026-06-27
+
+---
+
+## D-012 — SWOD (Sliding Window De-duplication)
+**Decision:** Add focal_prompt_hash to every graded event to enable deduplication
+**Reason:** Overlapping windows share the same focal user turn; without dedup, one great prompt inflates the above-bar count 2-3x.
+**Date:** 2026-06-27
