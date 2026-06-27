@@ -4,6 +4,10 @@ stage3_cta.py — Stage 3: Conversation Trajectory Analysis (CTA)
 Impact check: did the conversation improve in direction, quality, or
 specificity as a result of this user prompt?
 
+Core rubric question: Did the user drive the LLM, or did the LLM drive the user?
+A strong trajectory delta requires the user prompt to have genuinely advanced
+the conversation in a user-driven way — not just triggered a long LLM output.
+
 We ask an LLM judge to assess the *trajectory delta* — how much the
 conversation's heading changed for the better after the focal user turn.
 
@@ -120,9 +124,11 @@ def run_stage3(
 
     conversation_text = _format_conversation(turns)
 
+    has_follow_up = _has_follow_up_turns(turns, focal_user_prompt)
     user_msg = CTA_USER_TEMPLATE.format(
         conversation_text=conversation_text,
         focal_user_prompt=focal_user_prompt,
+        has_follow_up="yes" if has_follow_up else "no — this may be the end of the transcript",
     )
 
     raw = _call_llm_with_retry(
@@ -167,6 +173,20 @@ def _get_focal_user_prompt(turns: List[Dict[str, Any]]) -> Optional[str]:
     return None
 
 
+
+
+def _has_follow_up_turns(turns: List[Dict[str, Any]], focal_user_prompt: str) -> bool:
+    """Return True if there are any turns after the focal user turn."""
+    found_focal = False
+    for turn in turns:
+        if found_focal:
+            # There is at least one turn after the focal user turn
+            if turn.get("text", "").strip():
+                return True
+        if turn.get("role") == "user" and turn.get("text", "").strip() == focal_user_prompt:
+            found_focal = True
+    return False
+
 def _format_conversation(turns: List[Dict[str, Any]]) -> str:
     """Format turns as a readable conversation transcript."""
     lines: List[str] = []
@@ -179,15 +199,28 @@ def _format_conversation(turns: List[Dict[str, Any]]) -> str:
 
 
 def _parse_and_validate(raw: str) -> Dict[str, Any]:
-    """Parse LLM JSON output and validate required fields."""
-    data = json.loads(raw)
-    for key in ("trajectory_delta", "reasoning"):
-        if key not in data:
-            raise KeyError(f"Missing key: {key}")
+    """Parse LLM JSON output and validate required fields.
+
+    Handles optional no_follow_up_turns field and strips markdown fences.
+    """
+    cleaned = _strip_markdown(raw)
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        data = json.loads(raw)
+
+    if "trajectory_delta" not in data:
+        raise KeyError("Missing key: trajectory_delta")
+
     delta = str(data["trajectory_delta"]).lower().strip()
     if delta not in ("strong", "moderate", "weak", "none"):
         raise ValueError(f"Invalid trajectory_delta: {delta!r}")
     data["trajectory_delta"] = delta
+
+    # Provide reasoning default
+    if "reasoning" not in data:
+        data["reasoning"] = ""
+
     return data
 
 
