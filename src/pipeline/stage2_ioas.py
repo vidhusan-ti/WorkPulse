@@ -96,6 +96,7 @@ def run_stage2(
     provider: str,
     model: str,
     api_key: Optional[str] = None,
+    rubric_context: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Run Intent-Outcome Alignment Scoring on a conversation window.
 
@@ -109,6 +110,10 @@ def run_stage2(
         Model identifier string.
     api_key:
         Optional API key; falls back to environment variable if omitted.
+    rubric_context:
+        Optional rubric text to prepend to the system prompt. When provided,
+        the full manual rubric is included so the judge applies the canonical
+        grading criteria rather than relying solely on the hardcoded prompt.
 
     Returns
     -------
@@ -128,8 +133,17 @@ def run_stage2(
         llm_response=llm_response,
     )
 
+    _system_prompt = IOAS_SYSTEM_PROMPT
+    if rubric_context:
+        _system_prompt = (
+            "MANUAL GRADING RUBRIC (authoritative reference -- apply these criteria):\n"
+            + rubric_context
+            + "\n\n---\n\n"
+            + IOAS_SYSTEM_PROMPT
+        )
+
     raw = _call_llm_with_retry(
-        system_prompt=IOAS_SYSTEM_PROMPT,
+        system_prompt=_system_prompt,
         user_message=user_msg,
         provider=provider,
         model=model,

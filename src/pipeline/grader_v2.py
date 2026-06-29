@@ -21,6 +21,7 @@ Decision logic:
 from __future__ import annotations
 
 import logging
+import os
 import traceback
 from typing import Any, Dict, Optional
 
@@ -184,8 +185,9 @@ def grade_window_v2(
         A conversation window dict with a ``turns`` list of
         ``{"role": str, "text": str}`` dicts.
     rubric_path:
-        Path to the rubric markdown file (used for context; not directly
-        injected into pipeline prompts but available for future extensions).
+        Path to the rubric markdown file. When the file exists its content is
+        injected into the Stage 2/3/4 system prompts so LLM judges apply the
+        canonical human-authored criteria.
     provider:
         LLM provider: ``"anthropic"`` or ``"openai"``.
     model:
@@ -206,6 +208,15 @@ def grade_window_v2(
             "pipeline_trace": {stage_name: result_dict, ...}
         }``
     """
+    # Load rubric content for injection into stage prompts (GAP-1 fix)
+    rubric_context: str = ""
+    if rubric_path and os.path.isfile(rubric_path):
+        try:
+            with open(rubric_path, "r", encoding="utf-8") as _f:
+                rubric_context = _f.read()
+        except OSError as exc:
+            logger.warning("Could not read rubric file %r: %s", rubric_path, exc)
+
     pipeline_trace: Dict[str, Any] = {}
 
     # ------------------------------------------------------------------ #
@@ -236,7 +247,7 @@ def grade_window_v2(
     # Stage 2: Intent-Outcome Alignment Scoring                            #
     # ------------------------------------------------------------------ #
     try:
-        s2 = run_stage2(window, provider=provider, model=model, api_key=api_key)
+        s2 = run_stage2(window, provider=provider, model=model, api_key=api_key, rubric_context=rubric_context)
     except Exception:
         logger.error("Stage 2 (IOAS) crashed:\n%s", traceback.format_exc())
         s2 = {
@@ -275,7 +286,7 @@ def grade_window_v2(
     # Stage 3: Conversation Trajectory Analysis                            #
     # ------------------------------------------------------------------ #
     try:
-        s3 = run_stage3(window, provider=provider, model=model, api_key=api_key)
+        s3 = run_stage3(window, provider=provider, model=model, api_key=api_key, rubric_context=rubric_context)
     except Exception:
         logger.error("Stage 3 (CTA) crashed:\n%s", traceback.format_exc())
         s3 = {
@@ -312,7 +323,7 @@ def grade_window_v2(
     # Stage 4: Ensemble + Adversarial Dissenter                            #
     # ------------------------------------------------------------------ #
     try:
-        s4 = run_stage4(window, provider=provider, model=model, api_key=api_key)
+        s4 = run_stage4(window, provider=provider, model=model, api_key=api_key, rubric_context=rubric_context)
     except Exception:
         logger.error("Stage 4 (EJAD) crashed:\n%s", traceback.format_exc())
         s4 = {

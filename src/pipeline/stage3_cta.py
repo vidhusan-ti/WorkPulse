@@ -106,6 +106,7 @@ def run_stage3(
     provider: str,
     model: str,
     api_key: Optional[str] = None,
+    rubric_context: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Run Conversation Trajectory Analysis on a conversation window.
 
@@ -119,6 +120,8 @@ def run_stage3(
         Model identifier string.
     api_key:
         Optional API key; falls back to environment variable if omitted.
+    rubric_context:
+        Optional rubric text to prepend to the system prompt.
 
     Returns
     -------
@@ -141,8 +144,17 @@ def run_stage3(
         has_follow_up="yes" if has_follow_up else "no — this may be the end of the transcript",
     )
 
+    _cta_system_prompt = CTA_SYSTEM_PROMPT
+    if rubric_context:
+        _cta_system_prompt = (
+            "MANUAL GRADING RUBRIC (authoritative reference -- apply these criteria):\n"
+            + rubric_context
+            + "\n\n---\n\n"
+            + CTA_SYSTEM_PROMPT
+        )
+
     raw = _call_llm_with_retry(
-        system_prompt=CTA_SYSTEM_PROMPT,
+        system_prompt=_cta_system_prompt,
         user_message=user_msg,
         provider=provider,
         model=model,

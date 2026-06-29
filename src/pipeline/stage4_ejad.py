@@ -138,6 +138,7 @@ def run_stage4(
     provider: str,
     model: str,
     api_key: Optional[str] = None,
+    rubric_context: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Run Ensemble + Adversarial Dissenter validation.
 
@@ -151,6 +152,8 @@ def run_stage4(
         Model identifier string.
     api_key:
         Optional API key; falls back to environment variable if omitted.
+    rubric_context:
+        Optional rubric text to prepend to the system prompts.
 
     Returns
     -------
@@ -167,8 +170,19 @@ def run_stage4(
     conversation_text = _format_conversation(turns)
 
     # ---- Standard judges (dual-role, single call) ----
+    _standard_system = STANDARD_JUDGE_SYSTEM
+    _dissenter_system = DISSENTER_SYSTEM
+    if rubric_context:
+        _rubric_prefix = (
+            "MANUAL GRADING RUBRIC (authoritative reference — apply these criteria):\n"
+            + rubric_context
+            + "\n\n---\n\n"
+        )
+        _standard_system = _rubric_prefix + STANDARD_JUDGE_SYSTEM
+        _dissenter_system = _rubric_prefix + DISSENTER_SYSTEM
+
     standard_raw = _call_llm_with_retry(
-        system_prompt=STANDARD_JUDGE_SYSTEM,
+        system_prompt=_standard_system,
         user_message=STANDARD_JUDGE_USER_TEMPLATE.format(
             conversation_text=conversation_text,
             focal_user_prompt=focal_user_prompt,
@@ -212,7 +226,7 @@ def run_stage4(
 
     # ---- Dissenter (separate adversarial call) ----
     dissenter_raw = _call_llm_with_retry(
-        system_prompt=DISSENTER_SYSTEM,
+        system_prompt=_dissenter_system,
         user_message=DISSENTER_USER_TEMPLATE.format(
             conversation_text=conversation_text,
             focal_user_prompt=focal_user_prompt,
