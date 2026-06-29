@@ -1,4 +1,4 @@
-# WorkPulse Manual Grading Rubric — v3
+# WorkPulse Manual Grading Rubric — v3.1
 
 **Core principle:** *The conversation should be user-driven and not LLM-driven.*
 
@@ -58,6 +58,8 @@ A prompt that asks the LLM to choose between options or recommend an approach is
 
 A well-structured question using general engineering criteria (performance, simplicity, dependencies) is `near_bar` at best — even if the question is sharp and the LLM's answer is excellent.
 
+> **Note:** This gate applies to prompts that *ask* a question. It does **not** apply to prompts where the user is *issuing* a decision or architectural direction (e.g. "kill dynamic prompts, we're switching to Anthropic"). Decisive user directives are evaluated under the ownership test and strategic-decision proxy instead.
+
 ---
 
 ## Criteria for `above_bar`
@@ -82,6 +84,8 @@ A window must pass **all** of these:
    - **Trajectory resolution:** Does the conversation become more resolved after the prompt — not more circular or confused?
 
    > **For strategic or architectural decisions (not code/implementation):** replace proxy (a) with — "The LLM's response treats the user's direction as correct and does not suggest alternatives or caveats indicating the user may be wrong." Pure LLM deference to a firm user decision does not satisfy this proxy.
+   >
+   > **Important — read the LLM response turn:** To apply this proxy you must look at the LLM's response, not just the user prompt. In a JSONL transcript, the LLM response immediately follows the focal user turn and has `"role": "assistant"`. Read that turn to judge whether the LLM genuinely accepted the direction, pushed back, or merely deferred.
 
    *If you have domain expertise:* verify correctness directly.
    - Code: toward a working, idiomatic, well-architected solution fitting stated constraints
