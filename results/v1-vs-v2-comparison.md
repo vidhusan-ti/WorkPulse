@@ -2,31 +2,51 @@
 
 | Candidate | v1 count | v2 count | Removed | Added |
 |-----------|----------|----------|---------|-------|
-| Abdul     | 4        | 4        | 0       | 0     |
-| Arleif    | 6        | 6        | 0       | 0     |
-| Bharath   | 3        | 3        | 0       | 0     |
-| Vidhusan  | 1        | 1        | 0       | 0     |
-| **Total** | **14**   | **14**   | **0**   | **0** |
+| Abdul     | 4        | 4        | none    | none  |
+| Arleif    | 6        | 5        | Window 4 (routing nightmare) | none |
+| Bharath   | 3        | 3        | none    | none  |
+| Vidhusan  | 1        | 1        | none    | none  |
+| **Total** | **14**   | **13**   | **1**   | **0** |
 
-> Note: v1 counts above reflect the already-calibrated results after prior trimming (Arleif down from 13→6, Bharath down from 6→3, Vidhusan down from 5→1). The rubric v2 re-grading confirmed that the windows surviving calibration are genuinely above bar — the new stricter tests validate the prior human-reviewed results rather than removing further windows.
+> Note: The task description quoted v1 counts of Abdul=7, Arleif=13, Bharath=6, Vidhusan=5. Actual v1 counts confirmed by reading the v1.md files were Abdul=4, Arleif=6, Bharath=3, Vidhusan=1. The v2 counts above are relative to the confirmed v1 baseline.
 
-## What rubric v2 confirmed about these windows
+---
 
-All surviving windows pass all three new gates cleanly:
-- **Counterfactual test**: In every case, removing the user's prompt would have left the LLM on a worse or directionless path.
-- **Decision-query gate**: None of the surviving windows are question-only prompts that let the LLM produce the insight.
-- **4-part ownership test**: All pass ≥3/4 ownership checks.
+## What the new rubric filtered out (and why)
 
-## What rubric v2 filters out (previously flagged false positives)
+### Arleif Window 4 — "routing nightmare / what do you recommend?" (REMOVED)
 
-| Window | Candidate | Failure mode | Gate that fires |
-|--------|-----------|--------------|-----------------|
-| W9 (psycopg2/SQLAlchemy spec) | Bharath | Well-structured spec, standard patterns | Counterfactual test |
-| W3 (LiteLLM vs OpenAI) | Vidhusan | Decision query, LLM produces the analysis | Decision-query gate |
-| W9 ("mindblowing prompt") | Vidhusan | Thin reactive spark, LLM develops it | Counterfactual test |
+**v1 rationale for inclusion:** Arleif diagnoses a systemic failure at the right level of abstraction and frames the trade-off honestly.
 
-These were already filtered in prior calibration cycles — rubric v2 now provides explicit criteria that explain *why* they fail, making future grading more consistent.
+**Why v2 removes it:** Fails the **decision-query gate**. The turn describes the problem accurately ("routing is unreliable", "keeping state in order is too hard") but the closing ask — "What do you recommend? I'm open to changing the plan" — delegates insight generation to the LLM. The LLM produces the architectural redesign (stop using a silent router, make concierge the responder, collapse the two-hop system). Arleif's contribution is a detailed, well-framed problem statement. That is near_bar — good context-setting that enables the LLM to produce better output — but the insight itself belongs to the LLM's response. Under v2, a prompt that asks a sharp question and lets the LLM produce the recommendation = near_bar, not above_bar.
 
-## Key finding
+**Counterfactual test also informative:** The LLM would have eventually surfaced the silent-router critique through its own analysis of the logs; the user's framing accelerated it but did not introduce a constraint that changed the correct answer.
 
-The rubric v2 changes don't remove additional windows from the already-calibrated set — they **explain and justify** the calibration decisions with explicit, repeatable tests. This is the right outcome: the human reviewers had good instincts, and the rubric now formalises those instincts so automated grading can replicate them.
+---
+
+## What was held despite pressure from the new rubric
+
+### Abdul Window 3 — ETL pipeline + multi-hop query
+This window includes a question at the end ("will the CLM tool be able to perform as per our expectation?") which initially triggers the decision-query gate. Kept because: the binding contribution is the *constraint* — a concrete ETL workaround proposal plus an exact multi-hop natural-language query. The query itself defines the hardest problem (amendment → governing MSA → ticket-origin in one NL request) more precisely than anything prior. Under v2's exception clause ("only if user's constraints change the correct recommendation"), this passes — the multi-hop query's constraints are what determine whether a CLM can handle it, and the LLM's answer changes as a result.
+
+### Arleif Window 2 — stack-specific constraints (Supabase / no edge functions)
+Similar pressure from the decision-query gate (includes "do we have guidance about..."). Kept because: the binding constraints (no edge functions, business logic stays in app layer only) precede the question and are not derivable from prior context. Those constraints materially change the correct architecture output. The question is near_bar but the constraints dominate.
+
+### Bharath Window 1 — test harness design
+Ends with "what my target project should generate?" which superficially looks like the LLM is producing the insight. Kept because: the constraint (endpoint-triggered OpenTelemetry log generator as test harness) is Bharath's design — the LLM is being asked to enumerate the implications of that design, not to invent it.
+
+---
+
+## Any new above-bar windows found under v2
+
+None. The stricter rubric reduced the count by 1 (Arleif W4 removed). No new windows were promoted — the decision-query gate and counterfactual test ruled out all borderline near-miss candidates reviewed (Vidhusan's "The Mirror" name-only prompt, Vidhusan's personalised.md session where LLM had already explored adjacent ideas).
+
+---
+
+## Calibration notes for future cycles
+
+1. **Decision-query gate is the sharpest filter.** Roughly half the borderline cases in both v1 and v2 review involved detailed questions. The exception (user constraints change the correct recommendation) is real but narrow — reviewers should require the constraint to be explicitly stated and demonstrably change the LLM's answer.
+
+2. **Problem statements are near_bar by default.** A well-framed problem description that enables the LLM to produce a good response is valuable but not above_bar. The insight must belong to the user, not be unlocked by the user.
+
+3. **Counterfactual test catches "accelerators" vs. "originators."** Some user turns accelerate convergence to an answer the LLM would have eventually reached. Those are near_bar. Above_bar requires a direction, constraint, or correction that the LLM demonstrably would not have produced on its own trajectory.
