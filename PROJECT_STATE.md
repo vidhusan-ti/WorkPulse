@@ -42,6 +42,10 @@ A cross-platform Cursor conversation monitor that:
 - [x] README with platform-specific transcript paths
 - [x] 73 tests (pipeline stages, extractor, persister)
 
+## QA History
+
+- **2026-06-29** — QA Agent Cycle 1 ran. 89/89 tests pass. 3 bugs fixed (persist_grade makedirs crash, grader_v2 format-spec crash, SentenceTransformer model caching). 1 bug deferred (has_follow_up_turns positional match). 10 gaps documented. Full report: proposals/agent-qa-cycle-1.md
+
 ## Next Steps
 
 1. **Integration test** — test with a real Cursor transcript JSONL file

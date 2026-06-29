@@ -93,7 +93,9 @@ def persist_grade(
         "window_turns": len(window.get("turns", [])),
         "pipeline_trace_summary": _summarise_trace(grade.get("pipeline_trace", {})),
     }
-    os.makedirs(os.path.dirname(graded_events_file), exist_ok=True)
+    _dir = os.path.dirname(graded_events_file)
+    if _dir:
+        os.makedirs(_dir, exist_ok=True)
     with open(graded_events_file, "a", encoding="utf-8") as f:
         f.write(json.dumps(event) + "\n")
 

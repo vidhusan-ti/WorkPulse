@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 NOVELTY_THRESHOLD: float = 0.25
 # Sentence-transformers model used for embedding.
 EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+# Module-level cache: avoid reloading the model on every call.
+_ST_MODEL_CACHE: Optional[Any] = None
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -172,9 +174,11 @@ def _embedding_novelty(user_prompt: str, prior_texts: List[str]) -> float:
 
     novelty_score = 1 - max(cosine_similarity(user_prompt, prior_text))
     """
-    from sentence_transformers import SentenceTransformer  # type: ignore
-
-    model = SentenceTransformer(EMBEDDING_MODEL)
+    global _ST_MODEL_CACHE
+    if _ST_MODEL_CACHE is None:
+        from sentence_transformers import SentenceTransformer  # type: ignore
+        _ST_MODEL_CACHE = SentenceTransformer(EMBEDDING_MODEL)
+    model = _ST_MODEL_CACHE
     all_texts = [user_prompt] + prior_texts
     embeddings = model.encode(all_texts, convert_to_numpy=True)
 

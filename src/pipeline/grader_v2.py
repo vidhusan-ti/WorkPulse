@@ -350,7 +350,7 @@ def grade_window_v2(
     reason = (
         f"All 4 pipeline stages passed. "
         f"Novelty: {s1.get('novelty_score', 'n/a')}. "
-        f"Intent alignment: {s2.get('score', 'n/a'):.3f}. "
+        f"Intent alignment: {float(s2.get('score', 0.0)):.3f}. "
         f"Trajectory: {s3.get('trajectory_delta', 'n/a')}. "
         f"Ensemble: {s4.get('final_reasoning', '')}"
     )
