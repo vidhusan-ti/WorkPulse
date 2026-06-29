@@ -2,6 +2,17 @@
 watchdog>=3.0.0
 anthropic>=0.20.0
 
+# Monitor / dashboard
+flask>=3.0.0
+flask-cors>=4.0.0
+python-dotenv>=1.0.0
+
+# Optional — better notifications (falls back to OS native if unavailable)
+# plyer>=2.1.0
+
+# Optional — faster SND embedding-based novelty detection
+# sentence-transformers>=2.0.0
+
 # Optional (for OpenAI support)
 # openai>=1.0.0
 

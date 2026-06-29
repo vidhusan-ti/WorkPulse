@@ -90,3 +90,84 @@ workpulse/
 ├── main.py
 └── README.md
 ```
+
+---
+
+## WorkPulse Monitor
+
+Real-time Cursor transcript watcher with automatic grading, OS notifications, and a live web dashboard.
+
+### Install
+
+```bash
+pip install git+https://github.com/vidhusan-ti/WorkPulse.git
+```
+
+Or from source:
+
+```bash
+git clone https://github.com/vidhusan-ti/WorkPulse.git
+cd WorkPulse
+pip install -e .
+```
+
+### Setup
+
+Create a `.env` file in your project root:
+
+```
+ANTHROPIC_API_KEY=your_key_here
+```
+
+Or export it directly:
+
+```bash
+export ANTHROPIC_API_KEY=your_key_here
+```
+
+### Run
+
+```bash
+workpulse-monitor --path /path/to/cursor/transcripts
+```
+
+Options:
+
+```
+--path PATH    Directory to watch for Cursor .jsonl files (auto-detected if omitted)
+--port PORT    Dashboard port (default: 7700)
+--model MODEL  Anthropic model (default: claude-sonnet-4-5)
+--verbose      Enable debug logging
+```
+
+### Dashboard
+
+Open [http://localhost:7700](http://localhost:7700) in your browser.
+
+The dashboard shows:
+- Live running status + uptime
+- Real-time feed of `above_bar` and `near_bar` results via Server-Sent Events
+- Full prompt text, verdict, score, and which rubric criteria passed/failed
+- Coaching advice and rewritten prompt suggestions for near-bar results
+
+### Config file
+
+Persistent config at `~/.workpulse/config.json`:
+
+```json
+{
+  "transcript_path": "/path/to/cursor/transcripts",
+  "dashboard_port": 7700,
+  "model": "claude-sonnet-4-5",
+  "rubric_path": "data/manual_rubric.md"
+}
+```
+
+### How it works
+
+1. **File watching** — `watchdog` watches the transcript directory recursively for new/modified `.jsonl` files
+2. **Incremental reading** — Only new bytes are read since the last run (bookmarked per file in `~/.workpulse/bookmarks.json`)
+3. **SND pre-filter** — Stage 1 Semantic Novelty Detection runs locally (no API call) to discard low-novelty turns
+4. **Async grading** — Windows that pass SND are queued and graded in the background (FCFS order) without blocking the watcher
+5. **Notifications** — `above_bar` results trigger a native OS desktop notification
+6. **Dashboard** — Results streamed live to the browser via SSE; persisted to `~/.workpulse/results.jsonl`
