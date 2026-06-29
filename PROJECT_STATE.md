@@ -46,6 +46,7 @@ A cross-platform Cursor conversation monitor that:
 
 - **2026-06-29** — QA Agent Cycle 1 ran. 89/89 tests pass. 3 bugs fixed (persist_grade makedirs crash, grader_v2 format-spec crash, SentenceTransformer model caching). 1 bug deferred (has_follow_up_turns positional match). 10 gaps documented. Full report: proposals/agent-qa-cycle-1.md
 - **2026-06-29** — QA Agent Cycle 2 ran. End-to-end T -> PR -> R loop validated. Rubric v2 internally consistent; all 3 false positives (Bharath W9, Vidhusan W3, Vidhusan W9) correctly filtered to near_bar. GAP-1 CLOSED: rubric now wired into Stage 2/3/4 via rubric_context injection. 89/89 tests still pass. Full report: proposals/agent-qa-cycle-2.md
+- **2026-06-29** — QA Agent Cycle 3 ran. Rubric v3 validated end-to-end. All 4 v3 fixes integrate cleanly (no contradictions). 3 borderline cases (Abdul W2, Bharath W2, Arleif W5) now unambiguously resolved. Both calibration examples verified correct. 89/89 tests pass. 3 minor polish items flagged (non-blocking). Verdict: rubric v3 ready to use. Full report: proposals/agent-qa-cycle-3.md
 
 ## Next Steps
 
