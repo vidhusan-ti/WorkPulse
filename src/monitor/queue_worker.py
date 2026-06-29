@@ -15,7 +15,10 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
+
+if TYPE_CHECKING:
+    from src.monitor.overlay import OverlayState
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +54,14 @@ class GradingWorker:
         api_key: Optional[str] = None,
         on_result: Optional[Callable[[str, Dict[str, Any], Dict[str, Any]], None]] = None,
         results_file: Optional[str] = None,
+        overlay_state: "Optional[OverlayState]" = None,
     ):
         self._rubric_path = rubric_path
         self._provider = provider
         self._model = model
         self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         self._on_result = on_result
+        self._overlay_state = overlay_state
         self._results_file = results_file or str(Path.home() / ".workpulse" / "results.jsonl")
         self._queue: queue.Queue = queue.Queue()
         self._thread: Optional[threading.Thread] = None
@@ -140,6 +145,15 @@ class GradingWorker:
 
         # Persist result
         self._persist(filepath, window, result)
+
+        # Update overlay state
+        if self._overlay_state is not None:
+            try:
+                self._overlay_state.set_last_graded()
+                if result.get("tier") == "above_bar":
+                    self._overlay_state.increment_above_bar()
+            except Exception as exc:
+                logger.debug("overlay_state update failed: %s", exc)
 
         # Dispatch callback
         if self._on_result:

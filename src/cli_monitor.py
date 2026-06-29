@@ -22,6 +22,9 @@ import threading
 import time
 from pathlib import Path
 
+# Overlay widget (optional — graceful fallback if unavailable)
+# Imported lazily inside main() to avoid import-time side effects
+
 # Ensure project root is on sys.path so `src.*` imports work when run
 # both as `python src/cli_monitor.py` and as `workpulse-monitor` entry point.
 _project_root = str(Path(__file__).resolve().parent.parent)
@@ -206,6 +209,12 @@ def main() -> None:
             }
             store.add(record)
 
+    # ------------------------------------------------------------------ #
+    # 3a. Create overlay state                                            #
+    # ------------------------------------------------------------------ #
+    from src.monitor.overlay import OverlayState, OverlayWidget
+    overlay_state = OverlayState(start_time=time.time())
+
     worker = GradingWorker(
         rubric_path=rubric_path,
         provider="anthropic",
@@ -213,6 +222,7 @@ def main() -> None:
         api_key=cfg["anthropic_api_key"],
         on_result=on_result,
         results_file=results_file,
+        overlay_state=overlay_state,
     )
     worker.start()
 
@@ -233,15 +243,46 @@ def main() -> None:
         poll_interval=30,
     )
 
-    logger.info("Starting watcher — press Ctrl+C to stop.")
-    try:
-        watcher.run_blocking()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        logger.info("Shutting down…")
-        worker.stop(timeout=10.0)
-        logger.info("Done. Goodbye.")
+    # ------------------------------------------------------------------ #
+    # 5. Start overlay widget                                             #
+    # ------------------------------------------------------------------ #
+    _shutdown_event = threading.Event()
+
+    def _on_overlay_close():
+        """Called when user clicks ✕ in the overlay."""
+        logger.info("Overlay closed by user — shutting down monitor.")
+        _shutdown_event.set()
+        watcher.stop()  # signal watcher to stop
+
+    overlay = OverlayWidget(overlay_state, on_close=_on_overlay_close)
+
+    if overlay.uses_tkinter:
+        # Tkinter blocks main thread — run watcher in a background thread
+        logger.info("Starting watcher thread (Tkinter overlay on main thread).")
+        watcher_thread = threading.Thread(
+            target=watcher.run_blocking, daemon=True, name="workpulse-watcher"
+        )
+        watcher_thread.start()
+        try:
+            overlay.run()  # blocks until window closed
+        except KeyboardInterrupt:
+            pass
+        finally:
+            logger.info("Shutting down…")
+            worker.stop(timeout=10.0)
+            logger.info("Done. Goodbye.")
+    else:
+        # Flask overlay is non-blocking — watcher blocks main thread as before
+        overlay.run()  # starts background Flask thread
+        logger.info("Starting watcher — press Ctrl+C to stop.")
+        try:
+            watcher.run_blocking()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            logger.info("Shutting down…")
+            worker.stop(timeout=10.0)
+            logger.info("Done. Goodbye.")
 
 
 if __name__ == "__main__":
