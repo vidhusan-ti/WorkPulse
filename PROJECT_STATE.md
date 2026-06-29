@@ -57,6 +57,9 @@ A cross-platform Cursor conversation monitor that:
 - **Cycle 1** (2026-06-27) — Evaluated 5 grading approaches against 6 real transcript windows; identified best combination pipeline (SND→IOAS→CTA→EJAD). See proposals/agent-t-cycle-1-comparison.md.
 - **Cycle 2** (2026-06-29) — Calibration review of v1 grading results for all 4 candidates (Abdul 7, Arleif 13, Bharath 9, Vidhusan 9 windows). Flagged Bharath W9 as false positive candidate, Vidhusan W3/W6/W9 as near-bar, Arleif W6/W12 as borderline. Identified 4 rubric gaps and 4 process clarifications. See proposals/agent-t-cycle-2.md.
 
+## Agent PR History
+- **Cycle 1** (2026-06-29) — Rubric failure analysis: identified 5 concrete failure modes with test cases from actual grading results. Top 3 priority fixes: (1) define "insight" with counterfactual test, (2) decision-query gate, (3) domain-independent "correct direction" proxy signals. Primary false positives analysed: Bharath W9, Vidhusan W3, Vidhusan W9. See proposals/agent-pr-cycle-1.md.
+
 ## Agent R History
 
 - **Cycle 1** — Initial rubric design proposals (solutions 1–11), multi-dimensional scoring, CTA concept, contrastive baseline
