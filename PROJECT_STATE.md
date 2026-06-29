@@ -49,6 +49,10 @@ A cross-platform Cursor conversation monitor that:
 3. **Edge cases** — handle malformed JSONL, empty files, missing API keys gracefully
 4. **Package** — pip-installable package for easy distribution
 
+## Agent T History
+- **Cycle 1** (2026-06-27) — Evaluated 5 grading approaches against 6 real transcript windows; identified best combination pipeline (SND→IOAS→CTA→EJAD). See proposals/agent-t-cycle-1-comparison.md.
+- **Cycle 2** (2026-06-29) — Calibration review of v1 grading results for all 4 candidates (Abdul 7, Arleif 13, Bharath 9, Vidhusan 9 windows). Flagged Bharath W9 as false positive candidate, Vidhusan W3/W6/W9 as near-bar, Arleif W6/W12 as borderline. Identified 4 rubric gaps and 4 process clarifications. See proposals/agent-t-cycle-2.md.
+
 ## Agent R History
 
 - **Cycle 1** — Initial rubric design proposals (solutions 1–11), multi-dimensional scoring, CTA concept, contrastive baseline
