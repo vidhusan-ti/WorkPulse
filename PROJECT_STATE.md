@@ -60,6 +60,7 @@ A cross-platform Cursor conversation monitor that:
 
 ## Agent PR History
 - **Cycle 1** (2026-06-29) — Rubric failure analysis: identified 5 concrete failure modes with test cases from actual grading results. Top 3 priority fixes: (1) define "insight" with counterfactual test, (2) decision-query gate, (3) domain-independent "correct direction" proxy signals. Primary false positives analysed: Bharath W9, Vidhusan W3, Vidhusan W9. See proposals/agent-pr-cycle-1.md.
+- **Cycle 2** (2026-06-29) — Stress-test of rubric v2 ownership test and correct-direction proxy on 3 borderline windows (Abdul W2, Arleif W4/W5, Bharath W2). Identified 4 remaining gaps: Check 1 ambiguity for failure-diagnosis contributions, removal test time-horizon escape hatch, proxy (a) vacuousness for strategic decisions, missing calibration examples. See proposals/agent-pr-cycle-2.md.
 
 ## Agent R History
 
@@ -67,3 +68,4 @@ A cross-platform Cursor conversation monitor that:
 - **Cycle 2** — Edge cases, SWOD deduplication (Proposal 12), Stage 1 calibration (Proposal 13), context-aware window sizing (Proposal 14)
 - **Cycle 3** (2026-06-29) — Rubric alignment analysis: 7 gaps identified in new manual rubric, 7 concrete improvement proposals covering window definition, tier vocabulary unification, insight operationalisation, per-stage failure modes, two-axis insight exception, "correct direction" definition, and near-bar coaching template. Proposals cross-referenced with all 4 candidate result sets.
 - **Cycle 4** (2026-06-29) — Rewrote `data/manual_rubric.md` to v2 applying all 5 failure mode fixes from Agent PR Cycle 1. Key changes: window definition added, tier vocabulary unified (`above_bar`/`near_bar`/`below_bar`), "insight" defined with counterfactual test, decision-query gate added, 4-part ownership test, domain-independent proxy signals for "correct direction", near-bar coaching template, quick reference checklist. Changelog: `data/rubric-changelog.md`.
+- **Cycle 5** (2026-06-29) — Applied 4 targeted fixes from Agent PR Cycle 2 to produce rubric v3: (1) Check 1 wording extended to cover failure diagnosis, (2) removal test scoped to within-conversation only, (3) correct-direction proxy (a) replaced for strategic decisions, (4) calibration examples section added with above_bar and near_bar anchors.

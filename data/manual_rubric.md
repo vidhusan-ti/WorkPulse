@@ -1,4 +1,4 @@
-# WorkPulse Manual Grading Rubric — v2
+# WorkPulse Manual Grading Rubric — v3
 
 **Core principle:** *The conversation should be user-driven and not LLM-driven.*
 
@@ -67,7 +67,7 @@ A window must pass **all** of these:
 1. **Semantic novelty** — The user contributes new information, constraints, or direction. Reorganising or paraphrasing LLM content — even elegantly — does not count.
 
 2. **Genuine insight from the user (not the LLM)** — Apply the 4-part ownership test:
-   - Was the constraint or direction **new** (not present in any prior LLM turn)?
+   - Was the constraint, direction, **OR failure diagnosis** new — not present in any prior LLM output in this conversation?
    - Was the direction change **user-initiated** (not following an LLM suggestion)?
    - Did the LLM **extend or implement** the insight rather than develop it from scratch?
    - If the user's turn were replaced with a generic question, would the LLM still reach the same insight?
@@ -80,7 +80,9 @@ A window must pass **all** of these:
    - **Consistency:** Is the direction consistent with constraints the user stated earlier in the conversation?
    - **LLM acceptance:** Does the LLM implement the direction without flagging contradictions or errors?
    - **Trajectory resolution:** Does the conversation become more resolved after the prompt — not more circular or confused?
-   
+
+   > **For strategic or architectural decisions (not code/implementation):** replace proxy (a) with — "The LLM's response treats the user's direction as correct and does not suggest alternatives or caveats indicating the user may be wrong." Pure LLM deference to a firm user decision does not satisfy this proxy.
+
    *If you have domain expertise:* verify correctness directly.
    - Code: toward a working, idiomatic, well-architected solution fitting stated constraints
    - Design: consistent with stated project goals, constraints, and prior decisions
@@ -91,6 +93,8 @@ A window must pass **all** of these:
 5. **Efficiency** — The user does not arrive at the insight only after repeating the same prompt multiple times. If the same correction needed ≥2 prior turns to land, the first attempt is penalised.
 
 6. **User-driven, not LLM-driven** — The user is steering, not rubber-stamping an LLM-suggested plan. If removing the user's turn would not change the LLM's trajectory, the turn has no independent steering value.
+
+   *Apply this test within-conversation only — do not ask whether the LLM "could have known this eventually". Ask: without this specific turn, would this conversation have produced this outcome?*
 
 ---
 
@@ -137,3 +141,17 @@ To make this above bar: [one concrete, actionable change the user could have mad
 All 8 checks pass → `above_bar`
 Partial pass (fails 1–2) → `near_bar` + coaching message
 Fails insight/novelty gates → `below_bar`
+
+---
+
+## Calibration Examples
+
+### above_bar example
+**Prompt:** "i'd like to store my pdf first in a quarantined s3 directory or bucket first, and then run a background job to get that file, run security scan for malware, parser exploits etc..."
+**Verdict:** above_bar
+**Why:** The quarantine-first security model and parser exploit threat model were not in any prior LLM output. LLM validates, not originates. Counterfactual: LLM would have proposed simple upload-and-parse. Ownership: 4/4.
+
+### near_bar example
+**Prompt:** "Should I use LiteLLM or call the OpenAI API directly for this?"
+**Verdict:** near_bar
+**Why:** Decision-query gate fires. The comparative analysis is LLM-produced. User contributed the question, not the insight. Ownership: 2/4.
