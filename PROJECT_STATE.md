@@ -1,6 +1,6 @@
 # PROJECT_STATE.md — WorkPulse
 
-**Last Updated:** 2026-06-27
+**Last Updated:** 2026-06-29
 **Status:** Phase 5 Active — Pipeline v2 complete, 73 tests passing, monitor wired
 
 ## What Is WorkPulse
@@ -48,3 +48,9 @@ A cross-platform Cursor conversation monitor that:
 2. **Rubric review** — verify grader output quality with sample windows
 3. **Edge cases** — handle malformed JSONL, empty files, missing API keys gracefully
 4. **Package** — pip-installable package for easy distribution
+
+## Agent R History
+
+- **Cycle 1** — Initial rubric design proposals (solutions 1–11), multi-dimensional scoring, CTA concept, contrastive baseline
+- **Cycle 2** — Edge cases, SWOD deduplication (Proposal 12), Stage 1 calibration (Proposal 13), context-aware window sizing (Proposal 14)
+- **Cycle 3** (2026-06-29) — Rubric alignment analysis: 7 gaps identified in new manual rubric, 7 concrete improvement proposals covering window definition, tier vocabulary unification, insight operationalisation, per-stage failure modes, two-axis insight exception, "correct direction" definition, and near-bar coaching template. Proposals cross-referenced with all 4 candidate result sets.
