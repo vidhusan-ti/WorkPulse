@@ -1,40 +1,38 @@
-.env
-*.pyc
+# Python
 __pycache__/
-.DS_Store
+*.pyc
+*.pyo
+*.pyd
+.Python
 *.egg-info/
 dist/
 build/
+.eggs/
 
-# Non-app files — kept locally and on the `master` branch (openclaw agent
-# orchestration, raw transcripts, sample outputs, working docs). Untracked
-# on `main` to keep it to just what the WorkPulse application needs.
-/.openclaw/
-/AGENTS.md
-/APPROVALS.md
-/ARCHITECTURE.md
-/BOOTSTRAP.md
-/DECISIONS.md
-/HEARTBEAT.md
-/IDENTITY.md
-/MEMORY.md
-/OBJECTIVE.md
-/PROJECT_STATE.md
-/SOUL.md
-/SUPERVISOR_PROMPT.md
-/SYSTEM_PROMPT.md
-/TODO.md
-/TOOLS.md
-/USER.md
-/IPD.md
-/llm_agent_workflow.md
-/summarise.md
-/test.md
-/Rubric archive/
-/inputs/
-/memory/
-/proposals/
-/result/
-/results/
-/skill-github/
-/transcrpts/
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Runtime / user data (never commit these)
+data/graded_events.jsonl
+data/portfolio.md
+data/cursor_grade_*.json
+data/cursor-transcript-export/
+config/settings.json
+
+# Secrets
+.env
+*.env
+
+# WorkPulse user state (lives in ~/.workpulse, not repo)
+*.workpulse/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
