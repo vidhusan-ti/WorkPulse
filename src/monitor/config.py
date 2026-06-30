@@ -29,33 +29,83 @@ RESULTS_FILE = WORKPULSE_DIR / "results.jsonl"
 # Cursor transcript path auto-detection
 # ---------------------------------------------------------------------------
 
+def _has_agent_transcripts(base: Path) -> bool:
+    """Return True if *base* contains at least one .jsonl under any agent-transcripts/ subdir.
+
+    Short-circuits on first match for speed. Never raises.
+    """
+    try:
+        for jsonl in base.rglob("agent-transcripts/*.jsonl"):
+            if jsonl.is_file():
+                return True
+    except (OSError, PermissionError):
+        pass
+    return False
+
+
 def _detect_cursor_transcript_path() -> Optional[str]:
-    """Try to find Cursor's default transcript directory on the current OS."""
-    system = platform.system()
+    """Auto-detect the Cursor agent-transcript directory — cross-platform, no hardcoded paths.
+
+    Change summary: primary target is now ~/.cursor/projects (works on Windows/macOS/Linux);
+    old workspaceStorage/logs paths kept only as last-resort fallbacks.
+
+    Priority:
+      1. PRIMARY  — ~/.cursor/projects  (contains agent-transcripts/ across all OSes)
+      2. FALLBACK — OS-specific Cursor app-data dirs (workspaceStorage / logs)
+
+    Returns the first existing path that contains at least one .jsonl transcript,
+    or None if nothing is found. Never raises.
+    """
     home = Path.home()
 
-    candidates = []
-    if system == "Darwin":  # macOS
-        candidates = [
+    # ------------------------------------------------------------------
+    # 1. PRIMARY: ~/.cursor/projects  (OS-independent)
+    # ------------------------------------------------------------------
+    primary = home / ".cursor" / "projects"
+    try:
+        if primary.is_dir() and _has_agent_transcripts(primary):
+            logger.info("Auto-detected Cursor transcript path (primary): %s", primary)
+            return str(primary)
+        elif primary.is_dir():
+            # Dir exists but no transcripts yet — still prefer it so new
+            # projects are picked up automatically once Cursor writes them.
+            logger.info(
+                "Auto-detected Cursor projects dir (primary, no transcripts yet): %s", primary
+            )
+            return str(primary)
+    except (OSError, PermissionError) as exc:
+        logger.debug("Primary detection failed: %s", exc)
+
+    # ------------------------------------------------------------------
+    # 2. FALLBACK: OS-specific Cursor app-data dirs
+    # ------------------------------------------------------------------
+    system = platform.system()
+    fallbacks: list[Path] = []
+
+    if system == "Darwin":
+        fallbacks = [
             home / "Library" / "Application Support" / "Cursor" / "User" / "workspaceStorage",
             home / "Library" / "Application Support" / "Cursor" / "logs",
         ]
     elif system == "Linux":
-        candidates = [
+        fallbacks = [
             home / ".config" / "Cursor" / "User" / "workspaceStorage",
             home / ".config" / "cursor" / "User" / "workspaceStorage",
         ]
     elif system == "Windows":
         appdata = os.environ.get("APPDATA", "")
         if appdata:
-            candidates = [
-                Path(appdata) / "Cursor" / "User" / "workspaceStorage",
-            ]
+            fallbacks = [Path(appdata) / "Cursor" / "User" / "workspaceStorage"]
 
-    for path in candidates:
-        if path.exists():
-            return str(path)
+    for candidate in fallbacks:
+        try:
+            if candidate.is_dir():
+                logger.info("Auto-detected Cursor transcript path (fallback): %s", candidate)
+                return str(candidate)
+        except (OSError, PermissionError) as exc:
+            logger.debug("Fallback candidate %s inaccessible: %s", candidate, exc)
 
+    logger.debug("Could not auto-detect Cursor transcript path.")
     return None
 
 
