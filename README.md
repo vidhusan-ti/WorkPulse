@@ -220,18 +220,6 @@ WorkPulse/
 └── setup.py
 ```
 
----
-
-## Running tests
-
-```bash
-pytest tests/
-```
-
-117 tests, all passing.
-
----
-
 ## License
 
 MIT
