@@ -134,11 +134,21 @@ workpulse-monitor --path /path/to/cursor/transcripts
 Options:
 
 ```
---path PATH    Directory to watch for Cursor .jsonl files (auto-detected if omitted)
---port PORT    Dashboard port (default: 7700)
---model MODEL  Anthropic model (default: claude-sonnet-4-5)
---verbose      Enable debug logging
+--path PATH         Directory to watch for Cursor .jsonl files (auto-detected if omitted)
+--port PORT         Dashboard port (default: 7700)
+--model MODEL       Anthropic model (default: claude-sonnet-4-5)
+--grade-history     On first run, grade your existing Cursor history (skip the prompt)
+--no-grade-history  On first run, grade only new prompts from now on (skip the prompt)
+--verbose           Enable debug logging
 ```
+
+#### First run
+
+The very first time you launch WorkPulse, it asks **once** whether to grade your
+existing Cursor conversation history or only new prompts from now on. The choice is
+saved in `~/.workpulse/state.json` and never asked again. Choosing "only new" marks
+all existing transcripts as already-read so you aren't billed for re-grading the
+backlog. Use `--grade-history` / `--no-grade-history` to answer non-interactively.
 
 ### Dashboard
 

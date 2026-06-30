@@ -76,6 +76,19 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Enable debug logging.",
     )
+    parser.add_argument(
+        "--grade-history",
+        dest="grade_history",
+        action="store_true",
+        help="On first run, grade existing Cursor history (skip the prompt).",
+    )
+    parser.add_argument(
+        "--no-grade-history",
+        dest="grade_history",
+        action="store_false",
+        help="On first run, grade only new prompts from now on (skip the prompt).",
+    )
+    parser.set_defaults(grade_history=None)
     return parser.parse_args()
 
 
@@ -227,6 +240,12 @@ def main() -> None:
     from src.monitor.queue_worker import GradingWorker
 
     bookmarks = BookmarkStore(cfg["bookmarks_file"])
+
+    # First-run prompt: ask whether to grade existing Cursor history or only
+    # new prompts. Runs once ever (tracked in ~/.workpulse/state.json). Must
+    # happen before the watcher/worker start so "only new" can seed bookmarks.
+    from src.monitor.first_run import handle_first_run
+    handle_first_run(cfg, bookmarks, forced_choice=args.grade_history)
 
     def on_result(filepath: str, window: dict, result: dict) -> None:
         """Called by worker thread when a grade completes."""
