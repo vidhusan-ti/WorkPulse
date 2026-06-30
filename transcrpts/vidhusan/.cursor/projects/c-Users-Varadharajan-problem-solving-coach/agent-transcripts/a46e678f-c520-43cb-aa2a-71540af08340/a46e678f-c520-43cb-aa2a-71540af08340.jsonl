@@ -1,3 +1,0 @@
-{"role":"user","message":{"content":[{"type":"text","text":"<user_query>\nwhat is thje capital of india\n</user_query>"}]}}
-{"role":"assistant","message":{"content":[{"type":"text","text":"The capital of India is **New Delhi**. It is the seat of the national government and is part of the larger Delhi metropolitan area.\n\n[REDACTED]"}]}}
-{"type":"turn_ended","status":"success"}

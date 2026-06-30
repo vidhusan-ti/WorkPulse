@@ -1,2 +1,0 @@
-{"role":"user","message":{"content":[{"type":"text","text":"<timestamp>Tuesday, May 19, 2026, 4:31 PM (UTC+5:30)</timestamp>\n<user_query>\nwhat is the capital of India\n</user_query>"}]}}
-{"role":"assistant","message":{"content":[{"type":"text","text":"New Delhi is the capital of India."}]}}

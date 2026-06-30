@@ -5,3 +5,36 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+
+# Non-app files — kept locally and on the `master` branch (openclaw agent
+# orchestration, raw transcripts, sample outputs, working docs). Untracked
+# on `main` to keep it to just what the WorkPulse application needs.
+/.openclaw/
+/AGENTS.md
+/APPROVALS.md
+/ARCHITECTURE.md
+/BOOTSTRAP.md
+/DECISIONS.md
+/HEARTBEAT.md
+/IDENTITY.md
+/MEMORY.md
+/OBJECTIVE.md
+/PROJECT_STATE.md
+/SOUL.md
+/SUPERVISOR_PROMPT.md
+/SYSTEM_PROMPT.md
+/TODO.md
+/TOOLS.md
+/USER.md
+/IPD.md
+/llm_agent_workflow.md
+/summarise.md
+/test.md
+/Rubric archive/
+/inputs/
+/memory/
+/proposals/
+/result/
+/results/
+/skill-github/
+/transcrpts/

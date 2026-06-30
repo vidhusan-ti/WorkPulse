@@ -1,3 +1,0 @@
-{"role":"user","message":{"content":[{"type":"text","text":"<user_query>\nhi\n</user_query>"}]}}
-{"role":"assistant","message":{"content":[{"type":"text","text":"Hi! How can I help you today? I can assist with coding, debugging, exploring your project, or anything else you're working on.\n\n[REDACTED]"}]}}
-{"type":"turn_ended","status":"success"}
