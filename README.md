@@ -1,103 +1,36 @@
-# WorkPulse — AI Prompt Coach for Cursor
+<div align="center">
 
-Monitors your Cursor conversations in real-time and gives you feedback on your prompting quality.
+# 🔱 WorkPulse
 
-## What It Does
+**Real-time AI prompt coach for Cursor.**  
+WorkPulse watches your Cursor conversations as you work, grades your prompting quality, and gives you live coaching — so you get better every session.
 
-- **Watches** your Cursor transcript files as you work
-- **Grades** each conversation window against the WorkPulse rubric
-- **Above bar** → asks you to approve saving it to your portfolio
-- **Near bar** → coaching popup explaining what was missing and how to improve
-- **Below bar** → silently ignored (no noise)
-- **10-minute nudge** → if you haven't had a quality prompt in 10 minutes, a floating reminder appears
-
-## Quick Start
-
-### 1. Install
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Setup
-```bash
-python main.py --setup
-```
-This will ask for your Cursor transcript path and LLM API key.
-
-### 3. Run
-```bash
-python main.py
-```
-
-### Environment Variables
-Instead of storing your API key in config, set it as an env var:
-```bash
-export OPENAI_API_KEY=sk-...   # for OpenAI
-export ANTHROPIC_API_KEY=...   # for Anthropic
-```
-
-## Configuration
-
-Edit `config/settings.json`:
-
-| Key | Description | Default |
-|-----|-------------|---------|
-| `transcript_glob` | Glob path to Cursor JSONL files | *(set in setup)* |
-| `check_interval_seconds` | How often to poll for changes | 60 |
-| `inactive_after_minutes` | Minutes before inactivity nudge | 10 |
-| `llm_provider` | `openai` or `anthropic` | `openai` |
-| `llm_model` | Model name | `gpt-4o` |
-| `llm_max_grades_per_cycle` | Max windows graded per check | 3 |
-| `use_pipeline_v2` | Use 4-stage pipeline v2 (recommended) | `true` |
-
-## Cursor Transcript Location
-
-| Platform | Path |
-|----------|------|
-| Windows | `C:\Users\<name>\.cursor\projects\*\agent-transcripts\*\*.jsonl` |
-| macOS | `~/Library/Application Support/Cursor/User/globalStorage/cursor.agent/agent-transcripts/*/*.jsonl` |
-| Linux | `~/.config/Cursor/User/globalStorage/cursor.agent/agent-transcripts/*/*.jsonl` |
-
-## Running Tests
-```bash
-pytest tests/
-```
-
-## Project Structure
-```
-workpulse/
-├── src/
-│   ├── pipeline/              # 4-stage grading pipeline v2
-│   │   ├── __init__.py        # Public API: grade_window_v2
-│   │   ├── grader_v2.py       # Pipeline orchestrator
-│   │   ├── stage1_snd.py      # Semantic Novelty Detection
-│   │   ├── stage2_ioas.py     # Intent-Outcome Alignment Scoring
-│   │   ├── stage3_cta.py      # Conversation Trajectory Analysis
-│   │   └── stage4_ejad.py     # Ensemble + Adversarial Dissenter
-│   ├── watcher.py             # File system watcher (cross-platform)
-│   ├── extractor.py           # Window extraction from JSONL
-│   ├── grader.py              # LLM grader v1 (legacy)
-│   ├── monitor.py             # Main loop — wires all components
-│   ├── persister.py           # Grade storage + SWOD deduplication
-│   ├── notifier.py            # Notification router + 10-min timer
-│   ├── popup.py               # Floating overlay UI (tkinter)
-│   └── portfolio.py           # portfolio.md writer
-├── data/
-│   ├── manual_rubric.md     # The grading rubric
-│   ├── graded_events.jsonl  # Grade history
-│   └── portfolio.md         # Your approved portfolio
-├── config/settings.json
-├── main.py
-└── README.md
-```
+</div>
 
 ---
 
-## WorkPulse Monitor
+## What it does
 
-Real-time Cursor transcript watcher with automatic grading, OS notifications, and a live web dashboard.
+| Event | What happens |
+|-------|-------------|
+| **Above bar prompt** | A popup asks if you want to save it to your portfolio |
+| **Near bar prompt** | A coaching popup explains what was missing and how to improve |
+| **Below bar prompt** | Silently ignored — no noise |
+| **10 min with no quality prompt** | A nudge reminder appears |
 
-### Install
+Every grade appears live on the dashboard at **http://localhost:7700**.
+
+---
+
+## Requirements
+
+- Python **3.10+**
+- An **Anthropic API key** ([get one here](https://console.anthropic.com/))
+- **Cursor** installed and used for coding
+
+---
+
+## Install
 
 ```bash
 pip install git+https://github.com/vidhusan-ti/WorkPulse.git
@@ -111,73 +44,194 @@ cd WorkPulse
 pip install -e .
 ```
 
-### Setup
+---
 
-Create a `.env` file in your project root:
-
-```
-ANTHROPIC_API_KEY=your_key_here
-```
-
-Or export it directly:
+## First run
 
 ```bash
-export ANTHROPIC_API_KEY=your_key_here
+workpulse-monitor
 ```
 
-### Run
+On first launch WorkPulse will:
+
+1. **Ask for your Anthropic API key** — saved to `~/.workpulse/.env` (never in git)
+2. **Ask whether to grade your existing Cursor history** or only new prompts from now on
+3. **Start automatically** — no further setup needed
+
+The browser opens at **http://localhost:7700** and a floating overlay widget appears in the corner of your screen.
+
+---
+
+## Every run after that
 
 ```bash
-workpulse-monitor --path /path/to/cursor/transcripts
+workpulse-monitor
 ```
+
+That's it. Config is remembered. Starts straight away.
+
+---
+
+## What you'll see
+
+### Floating overlay (tkinter)
+A small always-on-top widget in the bottom-right corner shows:
+- 🟢 Running / ⏸ Paused status + uptime
+- Last graded time
+- Above-bar count for today
+- Pause / Resume / Close buttons
+
+### Dashboard (browser)
+Live feed of every graded result at **http://localhost:7700**:
+- Prompt text, verdict (above / near / below bar), score
+- Which rubric criteria passed or failed
+- Coaching advice + a rewritten prompt suggestion for near-bar results
+- Which Cursor project the prompt came from
+
+---
+
+## CLI options
+
+```
+workpulse-monitor [OPTIONS]
 
 Options:
-
+  --path PATH           Directory to watch for Cursor .jsonl files
+                        (auto-detected if omitted — watches ALL your projects)
+  --port PORT           Dashboard port (default: 7700)
+  --model MODEL         Anthropic model (default: claude-sonnet-4-5)
+  --grade-history       On first run: grade existing Cursor history (skip prompt)
+  --no-grade-history    On first run: grade only new prompts (skip prompt)
+  --dotenv PATH         Path to a custom .env file
+  --verbose, -v         Enable debug logging
 ```
---path PATH         Directory to watch for Cursor .jsonl files (auto-detected if omitted)
---port PORT         Dashboard port (default: 7700)
---model MODEL       Anthropic model (default: claude-sonnet-4-5)
---grade-history     On first run, grade your existing Cursor history (skip the prompt)
---no-grade-history  On first run, grade only new prompts from now on (skip the prompt)
---verbose           Enable debug logging
+
+---
+
+## Uninstall / reinstall from scratch
+
+```bash
+# 1. Uninstall
+pip uninstall workpulse -y
+
+# 2. Delete saved config and API key
+#    macOS / Linux:
+rm -rf ~/.workpulse
+#    Windows (CMD):
+rmdir /s /q %USERPROFILE%\.workpulse
+#    Windows (PowerShell):
+Remove-Item -Recurse -Force "$env:USERPROFILE\.workpulse"
+
+# 3. Reinstall
+pip install git+https://github.com/vidhusan-ti/WorkPulse.git
 ```
 
-#### First run
+---
 
-The very first time you launch WorkPulse, it asks **once** whether to grade your
-existing Cursor conversation history or only new prompts from now on. The choice is
-saved in `~/.workpulse/state.json` and never asked again. Choosing "only new" marks
-all existing transcripts as already-read so you aren't billed for re-grading the
-backlog. Use `--grade-history` / `--no-grade-history` to answer non-interactively.
+## Update to latest version
 
-### Dashboard
+```bash
+pip install --upgrade git+https://github.com/vidhusan-ti/WorkPulse.git
+```
 
-Open [http://localhost:7700](http://localhost:7700) in your browser.
+---
 
-The dashboard shows:
-- Live running status + uptime
-- Real-time feed of `above_bar` and `near_bar` results via Server-Sent Events
-- Full prompt text, verdict, score, and which rubric criteria passed/failed
-- Coaching advice and rewritten prompt suggestions for near-bar results
+## Where Cursor transcripts live
 
-### Config file
+WorkPulse auto-detects these — you don't need to set this manually.
 
-Persistent config at `~/.workpulse/config.json`:
+| Platform | Path |
+|----------|------|
+| Windows | `%USERPROFILE%\.cursor\projects\` |
+| macOS | `~/.cursor/projects/` |
+| Linux | `~/.cursor/projects/` |
+
+All projects under that folder are watched automatically. New projects are picked up without any config change.
+
+---
+
+## Config file
+
+Persistent config lives at `~/.workpulse/config.json`. Edit it to override defaults:
 
 ```json
 {
-  "transcript_path": "/path/to/cursor/transcripts",
+  "transcript_path": "~/.cursor/projects",
   "dashboard_port": 7700,
   "model": "claude-sonnet-4-5",
-  "rubric_path": "data/manual_rubric.md"
+  "rubric_path": "data/manual_rubric.md",
+  "window_size": 3
 }
 ```
 
-### How it works
+---
 
-1. **File watching** — `watchdog` watches the transcript directory recursively for new/modified `.jsonl` files
-2. **Incremental reading** — Only new bytes are read since the last run (bookmarked per file in `~/.workpulse/bookmarks.json`)
-3. **SND pre-filter** — Stage 1 Semantic Novelty Detection runs locally (no API call) to discard low-novelty turns
-4. **Async grading** — Windows that pass SND are queued and graded in the background (FCFS order) without blocking the watcher
-5. **Notifications** — `above_bar` results trigger a native OS desktop notification
-6. **Dashboard** — Results streamed live to the browser via SSE; persisted to `~/.workpulse/results.jsonl`
+## How it works (under the hood)
+
+```
+Cursor writes .jsonl  →  watchdog detects change
+       ↓
+Incremental reader (only new bytes since last run)
+       ↓
+Stage 1 SND — Semantic Novelty Detection (local, no API call)
+  └─ low novelty → drop silently
+       ↓
+Async grading queue (FCFS, background thread)
+       ↓
+4-stage pipeline:
+  Stage 1  SND   — novelty pre-filter
+  Stage 2  IOAS  — Intent-Outcome Alignment Scoring
+  Stage 3  CTA   — Conversation Trajectory Analysis
+  Stage 4  EJAD  — Ensemble + Adversarial Dissenter
+       ↓
+Result → dashboard SSE + overlay + OS notification (above_bar only)
+       ↓
+Persisted to ~/.workpulse/results.jsonl
+```
+
+---
+
+## Project structure
+
+```
+WorkPulse/
+├── src/
+│   ├── pipeline/
+│   │   ├── grader_v2.py        # 4-stage pipeline orchestrator
+│   │   ├── stage1_snd.py       # Semantic Novelty Detection
+│   │   ├── stage2_ioas.py      # Intent-Outcome Alignment Scoring
+│   │   ├── stage3_cta.py       # Conversation Trajectory Analysis
+│   │   └── stage4_ejad.py      # Ensemble + Adversarial Dissenter
+│   ├── monitor/
+│   │   ├── config.py           # Config loading + auto-detection
+│   │   ├── watcher.py          # File system watcher (cross-platform)
+│   │   ├── queue_worker.py     # Async grading queue
+│   │   ├── dashboard.py        # Flask dashboard + SSE
+│   │   ├── overlay.py          # Tkinter floating widget (Flask fallback)
+│   │   ├── first_run.py        # First-run experience
+│   │   ├── bookmarks.py        # Read-offset tracking per file
+│   │   └── notifier.py         # OS desktop notifications
+│   ├── extractor.py            # Window extraction from JSONL
+│   └── cli_monitor.py          # Entry point: workpulse-monitor
+├── data/
+│   └── manual_rubric.md        # The grading rubric
+├── tests/                      # 117 tests
+├── requirements.txt
+└── setup.py
+```
+
+---
+
+## Running tests
+
+```bash
+pytest tests/
+```
+
+117 tests, all passing.
+
+---
+
+## License
+
+MIT
