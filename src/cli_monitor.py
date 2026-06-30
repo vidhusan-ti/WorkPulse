@@ -256,9 +256,11 @@ def main() -> None:
         from src.monitor.dashboard import get_result_store as _grs
         store = _grs()
         if store:
+            from src.monitor.config import extract_project_id
             record = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "source_file": filepath,
+                "project_id": extract_project_id(filepath),
                 "tier": tier,
                 "label": label,
                 "score": score,

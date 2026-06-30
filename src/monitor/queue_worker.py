@@ -169,9 +169,11 @@ class GradingWorker:
         result: Dict[str, Any],
     ) -> None:
         """Append result to the JSONL results file."""
+        from src.monitor.config import extract_project_id
         record = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "source_file": filepath,
+            "project_id": extract_project_id(filepath),
             "tier": result.get("tier"),
             "label": result.get("label"),
             "score": result.get("score"),

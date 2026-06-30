@@ -43,11 +43,34 @@ def _has_agent_transcripts(base: Path) -> bool:
     return False
 
 
+def extract_project_id(filepath: str) -> str:
+    """Extract the Cursor project-id from a transcript filepath.
+
+    Cursor stores transcripts at:
+        ~/.cursor/projects/<project-id>/agent-transcripts/<uuid>/<uuid>.jsonl
+
+    Returns the <project-id> segment if found, otherwise the parent
+    directory name, and finally "unknown" as a last resort. Never raises.
+    """
+    try:
+        parts = Path(filepath).parts
+        for i, part in enumerate(parts):
+            if part == "agent-transcripts" and i > 0:
+                return parts[i - 1]   # the project-id folder
+        # Fallback: second-to-last directory
+        p = Path(filepath)
+        if p.parent.name:
+            return p.parent.name
+    except Exception:
+        pass
+    return "unknown"
+
+
 def _detect_cursor_transcript_path() -> Optional[str]:
     """Auto-detect the Cursor agent-transcript directory — cross-platform, no hardcoded paths.
 
-    Change summary: primary target is now ~/.cursor/projects (works on Windows/macOS/Linux);
-    old workspaceStorage/logs paths kept only as last-resort fallbacks.
+    Change summary: returns ~/.cursor/projects as primary target so ALL repos are watched;
+    per-repo attribution via extract_project_id(); fallbacks kept for legacy installs.
 
     Priority:
       1. PRIMARY  — ~/.cursor/projects  (contains agent-transcripts/ across all OSes)
