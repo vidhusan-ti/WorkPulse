@@ -79,6 +79,70 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+
+
+
+def _first_run_setup(cfg: dict) -> dict:
+    """
+    Interactive first-run wizard.
+    Runs only when ANTHROPIC_API_KEY or transcript_path is missing.
+    Saves API key to ~/.workpulse/.env and config to ~/.workpulse/config.json.
+    """
+    from pathlib import Path
+
+    WORKPULSE_DIR = Path.home() / ".workpulse"
+    WORKPULSE_DIR.mkdir(parents=True, exist_ok=True)
+    env_file = WORKPULSE_DIR / ".env"
+
+    needs_key = not cfg.get("anthropic_api_key")
+    needs_path = not cfg.get("transcript_path")
+
+    if not needs_key and not needs_path:
+        return cfg  # Nothing to ask, start immediately
+
+    print("\n\U0001f531 WorkPulse - First-time setup\n")
+
+    # --- API key ---
+    if needs_key:
+        print("An Anthropic API key is needed to grade your prompts.")
+        print("Get one at: https://console.anthropic.com/")
+        while True:
+            key = input("Enter your ANTHROPIC_API_KEY: ").strip()
+            if key and len(key) > 20:
+                cfg["anthropic_api_key"] = key
+                os.environ["ANTHROPIC_API_KEY"] = key
+                existing = env_file.read_text() if env_file.exists() else ""
+                lines = [l for l in existing.splitlines() if not l.startswith("ANTHROPIC_API_KEY=")]
+                lines.append(f"ANTHROPIC_API_KEY={key}")
+                env_file.write_text("\n".join(lines) + "\n")
+                print(f"\u2705  API key saved to {env_file}")
+                break
+            else:
+                print("That doesn't look like a valid key. Please try again.")
+
+    # --- Transcript path ---
+    if needs_path:
+        print("\nCursor transcript path not detected automatically.")
+        print("Common locations:")
+        print("  Windows : C:\\Users\\<name>\\.cursor\\projects")
+        print("  macOS   : ~/Library/Application Support/Cursor/User/globalStorage/cursor.agent/agent-transcripts")
+        print("  Linux   : ~/.config/Cursor/User/globalStorage/cursor.agent/agent-transcripts")
+        path_input = input("\nEnter path (or press Enter to skip): ").strip()
+        if path_input:
+            cfg["transcript_path"] = path_input
+        else:
+            print("\u26a0  No transcript path set - file watching will be disabled.")
+
+    from src.monitor.config import save_config, CONFIG_FILE
+    try:
+        save_config(cfg)
+        print(f"\u2705  Config saved to {CONFIG_FILE}")
+    except Exception as exc:
+        print(f"Warning: could not save config: {exc}")
+
+    print("\n\U0001f680  Starting WorkPulse...\n")
+    return cfg
+
 def main() -> None:
     args = _parse_args()
     _setup_logging(args.verbose)
@@ -100,6 +164,10 @@ def main() -> None:
     logger.info("Model:      %s", cfg["model"])
     logger.info("Dashboard:  http://localhost:%d", cfg["dashboard_port"])
 
+    # First-run setup: prompts for API key / transcript path if missing,
+    # saves them, then continues automatically.
+    cfg = _first_run_setup(cfg)
+
     if not cfg["transcript_path"]:
         logger.error(
             "No transcript path configured. "
@@ -109,12 +177,6 @@ def main() -> None:
         sys.exit(1)
 
     logger.info("Watching:   %s", cfg["transcript_path"])
-
-    if not cfg["anthropic_api_key"]:
-        logger.warning(
-            "ANTHROPIC_API_KEY is not set. Grading will fail. "
-            "Add it to .env or export ANTHROPIC_API_KEY=..."
-        )
 
     # Resolve rubric path relative to project root
     rubric_path = cfg.get("rubric_path", "data/manual_rubric.md")
