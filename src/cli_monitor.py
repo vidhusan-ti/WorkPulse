@@ -232,6 +232,20 @@ def main() -> None:
     dash_thread.start()
     logger.info("Dashboard starting at http://localhost:%d", dashboard_port)
 
+    # Auto-open the dashboard in the default browser once Flask is ready
+    def _open_browser():
+        import webbrowser
+        import time as _time
+        _time.sleep(1.5)  # give Flask a moment to bind
+        url = f"http://localhost:{dashboard_port}"
+        try:
+            webbrowser.open(url)
+            logger.info("Opened dashboard in browser: %s", url)
+        except Exception as exc:
+            logger.debug("Could not auto-open browser: %s", exc)
+
+    threading.Thread(target=_open_browser, daemon=True, name="workpulse-browser").start()
+
     # ------------------------------------------------------------------ #
     # 3. Start grading queue worker                                        #
     # ------------------------------------------------------------------ #
